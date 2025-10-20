@@ -21,3 +21,6 @@ build/
 # Environment variables
 .env
 .env.local
+
+# Dev Notes
+notes/

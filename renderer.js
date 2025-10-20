@@ -76,18 +76,170 @@ const stationApiMap = {
   doomed: 'doomed'
 };
 
+const LASTFM_API_KEY = 'b25b959554ed76058ac220b7b2e0a026';
+const YOUTUBE_API_KEY = 'AIzaSyDGVos9wmevE8PhmxukbAoCCvoTWfMBtjQ';
+const { shell } = require('electron');
+
 let currentStation = 'groovesalad';
 let currentAudio = new Audio(stations[currentStation]);
 let nextAudio = new Audio();
 let isPlaying = false;
+let masterVolume = 1.0;
+let playHistory = [];
+let favorites = [];
+let currentSong = null;
 
 const playBtn = document.getElementById('playBtn');
 const stopBtn = document.getElementById('stopBtn');
 const stationSelect = document.getElementById('stationSelect');
 const nowPlaying = document.getElementById('nowPlaying');
+const volumeSlider = document.getElementById('volumeSlider');
 
-currentAudio.volume = 1.0;
+currentAudio.volume = masterVolume;
 nextAudio.volume = 0.0;
+
+function loadFromStorage() {
+  const savedHistory = localStorage.getItem('radiobudHistory');
+  const savedFavorites = localStorage.getItem('radiobudFavorites');
+  
+  if (savedHistory) {
+    try {
+      playHistory = JSON.parse(savedHistory);
+    } catch (e) {
+      console.error('Error loading history:', e);
+    }
+  }
+  
+  if (savedFavorites) {
+    try {
+      favorites = JSON.parse(savedFavorites);
+    } catch (e) {
+      console.error('Error loading favorites:', e);
+    }
+  }
+}
+
+function saveToStorage() {
+  localStorage.setItem('radiobudHistory', JSON.stringify(playHistory));
+  localStorage.setItem('radiobudFavorites', JSON.stringify(favorites));
+}
+
+function getSongId(song) {
+  return `${song.artist}-${song.title}`.toLowerCase().replace(/\s+/g, '-');
+}
+
+function addToHistory(song) {
+  const songId = getSongId(song);
+  const existingIndex = playHistory.findIndex(s => getSongId(s) === songId);
+  
+  if (existingIndex === -1 || playHistory[0].timestamp < Date.now() - 60000) {
+    const historyEntry = {
+      ...song,
+      station: currentStation,
+      timestamp: Date.now()
+    };
+    
+    playHistory.unshift(historyEntry);
+    playHistory = playHistory.slice(0, 100);
+    saveToStorage();
+  }
+}
+
+async function fetchLastfmArt(artist, title) {
+  try {
+    const url = `https://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key=${LASTFM_API_KEY}&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(title)}&format=json`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    const artUrl = data.track?.album?.image?.find(img => img.size === 'large')?.[`#text`] || null;
+    return artUrl && artUrl !== '' ? artUrl : null;
+  } catch (error) {
+    console.error('Error fetching Last.fm art:', error);
+    return null;
+  }
+}
+
+async function fetchYouTubeThumbnail(artist, title) {
+  try {
+    const query = encodeURIComponent(`${artist} ${title}`);
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&type=video&maxResults=1&key=${YOUTUBE_API_KEY}`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.items && data.items.length > 0) {
+      return data.items[0].snippet.thumbnails.high.url;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching YouTube thumbnail:', error);
+    return null;
+  }
+}
+
+async function fetchAlbumArt(artist, title) {
+  const cacheKey = `art_${artist}_${title}`.toLowerCase().replace(/\s+/g, '_');
+  const cached = localStorage.getItem(cacheKey);
+  
+  if (cached && cached !== 'null') {
+    return cached;
+  }
+  
+  let artUrl = await fetchLastfmArt(artist, title);
+  
+  if (!artUrl) {
+    artUrl = await fetchYouTubeThumbnail(artist, title);
+  }
+  
+  if (artUrl) {
+    localStorage.setItem(cacheKey, artUrl);
+  } else {
+    localStorage.setItem(cacheKey, 'null');
+  }
+  
+  return artUrl;
+}
+
+function updateAlbumArt(artUrl) {
+  const albumArtEl = document.getElementById('albumArt');
+  
+  if (artUrl) {
+    albumArtEl.innerHTML = `<img src="${artUrl}" alt="Album Art" class="album-art-img">`;
+  } else {
+    albumArtEl.innerHTML = '<span class="no-artwork">No Artwork</span>';
+  }
+}
+
+function generateServiceLinks(artist, title) {
+  const lastfmUrl = `https://www.last.fm/music/${encodeURIComponent(artist.replace(/\s+/g, '+'))}/_/${encodeURIComponent(title.replace(/\s+/g, '+'))}`;
+  const bandcampUrl = `https://bandcamp.com/search?q=${encodeURIComponent(`${artist} ${title}`)}`;
+  const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${artist} ${title}`)}`;
+  
+  return { lastfmUrl, bandcampUrl, youtubeUrl };
+}
+
+function updateServiceLinks(artist, title) {
+  const { lastfmUrl, bandcampUrl, youtubeUrl } = generateServiceLinks(artist, title);
+  
+  const lastfmLink = document.getElementById('lastfmLink');
+  const bandcampLink = document.getElementById('bandcampLink');
+  const youtubeLink = document.getElementById('youtubeLink');
+  
+  lastfmLink.onclick = (e) => {
+    e.preventDefault();
+    shell.openExternal(lastfmUrl);
+  };
+  
+  bandcampLink.onclick = (e) => {
+    e.preventDefault();
+    shell.openExternal(bandcampUrl);
+  };
+  
+  youtubeLink.onclick = (e) => {
+    e.preventDefault();
+    shell.openExternal(youtubeUrl);
+  };
+}
 
 async function fetchNowPlaying() {
   try {
@@ -97,14 +249,194 @@ async function fetchNowPlaying() {
     if (data.songs && data.songs.length > 0) {
       const song = data.songs[0];
       nowPlaying.textContent = `${song.artist} - ${song.title}`;
+      
+      if (isPlaying && currentSong && getSongId(currentSong) !== getSongId(song)) {
+        addToHistory(song);
+      }
+      
+      currentSong = song;
+      updateStarIcons();
+      updateServiceLinks(song.artist, song.title);
+      
+      const artUrl = await fetchAlbumArt(song.artist, song.title);
+      updateAlbumArt(artUrl);
     }
   } catch (error) {
     console.error('Error fetching now playing:', error);
   }
 }
 
+function isFavorited(song) {
+  const songId = getSongId(song);
+  return favorites.some(fav => getSongId(fav) === songId);
+}
+
+function toggleFavorite(song) {
+  const songId = getSongId(song);
+  const index = favorites.findIndex(fav => getSongId(fav) === songId);
+  
+  if (index === -1) {
+    favorites.push({
+      ...song,
+      station: currentStation,
+      favoritedAt: Date.now()
+    });
+  } else {
+    favorites.splice(index, 1);
+  }
+  
+  saveToStorage();
+  updateStarIcons();
+}
+
+function updateStarIcons() {
+  const starBtn = document.getElementById('starBtn');
+  if (starBtn && currentSong) {
+    starBtn.textContent = isFavorited(currentSong) ? '★' : '☆';
+  }
+}
+
+loadFromStorage();
 setInterval(fetchNowPlaying, 30000);
 fetchNowPlaying();
+
+const starBtn = document.getElementById('starBtn');
+const historyContent = document.getElementById('historyContent');
+const favoritesContent = document.getElementById('favoritesContent');
+const mainTabRadio = document.getElementById('mainTabRadio');
+const mainTabHistory = document.getElementById('mainTabHistory');
+const mainTabFavorites = document.getElementById('mainTabFavorites');
+const radioView = document.getElementById('radioView');
+const historyView = document.getElementById('historyView');
+const favoritesView = document.getElementById('favoritesView');
+
+starBtn.addEventListener('click', () => {
+  if (currentSong) {
+    toggleFavorite(currentSong);
+  }
+});
+
+function switchToTab(tab) {
+  mainTabRadio.classList.remove('active');
+  mainTabHistory.classList.remove('active');
+  mainTabFavorites.classList.remove('active');
+  radioView.classList.add('hidden');
+  historyView.classList.add('hidden');
+  favoritesView.classList.add('hidden');
+  
+  if (tab === 'radio') {
+    mainTabRadio.classList.add('active');
+    radioView.classList.remove('hidden');
+  } else if (tab === 'history') {
+    mainTabHistory.classList.add('active');
+    historyView.classList.remove('hidden');
+    renderHistory();
+  } else if (tab === 'favorites') {
+    mainTabFavorites.classList.add('active');
+    favoritesView.classList.remove('hidden');
+    renderFavorites();
+  }
+  
+  setTimeout(() => {
+    const { ipcRenderer } = require('electron');
+    ipcRenderer.send('resize-window');
+  }, 100);
+}
+
+mainTabRadio.addEventListener('click', () => switchToTab('radio'));
+mainTabHistory.addEventListener('click', () => switchToTab('history'));
+mainTabFavorites.addEventListener('click', () => switchToTab('favorites'));
+
+function formatTime(timestamp) {
+  const now = new Date();
+  const date = new Date(timestamp);
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 60) {
+    return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+  }
+  
+  if (diffHours < 24) {
+    return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  }
+  
+  if (diffDays === 1) {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `yesterday, ${hours}:${minutes}`;
+  }
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${day}${month}`;
+}
+
+function renderHistory() {
+  if (playHistory.length === 0) {
+    historyContent.innerHTML = '<div class="history-empty">No songs played yet</div>';
+    return;
+  }
+  
+  historyContent.innerHTML = playHistory.map(song => {
+    const isFav = isFavorited(song);
+    const timeStr = formatTime(song.timestamp);
+    return `
+      <div class="history-item">
+        <button class="history-item-star" data-song='${JSON.stringify(song)}'>${isFav ? '★' : '☆'}</button>
+        <div class="history-item-info">
+          <div class="history-item-song">${song.artist} - ${song.title}</div>
+          <div class="history-item-meta">${song.station} • ${timeStr}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  historyContent.querySelectorAll('.history-item-star').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const song = JSON.parse(e.target.dataset.song);
+      toggleFavorite(song);
+      renderHistory();
+    });
+  });
+}
+
+function renderFavorites() {
+  if (favorites.length === 0) {
+    favoritesContent.innerHTML = '<div class="history-empty">No favorites yet</div>';
+    return;
+  }
+  
+  favoritesContent.innerHTML = favorites.map(song => {
+    const timeStr = formatTime(song.favoritedAt);
+    return `
+      <div class="history-item">
+        <button class="history-item-star" data-song='${JSON.stringify(song)}'>★</button>
+        <div class="history-item-info">
+          <div class="history-item-song">${song.artist} - ${song.title}</div>
+          <div class="history-item-meta">${song.station} • ${timeStr}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  favoritesContent.querySelectorAll('.history-item-star').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const song = JSON.parse(e.target.dataset.song);
+      toggleFavorite(song);
+      renderFavorites();
+    });
+  });
+}
+
+volumeSlider.addEventListener('input', (e) => {
+  masterVolume = e.target.value / 100;
+  if (isPlaying) {
+    currentAudio.volume = masterVolume;
+  }
+});
 
 playBtn.addEventListener('click', () => {
   currentAudio.volume = 0;
@@ -120,11 +452,11 @@ playBtn.addEventListener('click', () => {
   const fadeInTimer = setInterval(() => {
     step++;
     const progress = step / fadeSteps;
-    currentAudio.volume = Math.min(1, progress);
+    currentAudio.volume = Math.min(masterVolume, progress * masterVolume);
     
     if (step >= fadeSteps) {
       clearInterval(fadeInTimer);
-      currentAudio.volume = 1.0;
+      currentAudio.volume = masterVolume;
     }
   }, fadeInterval);
 });
@@ -137,13 +469,13 @@ stopBtn.addEventListener('click', () => {
   const fadeOutTimer = setInterval(() => {
     step++;
     const progress = step / fadeSteps;
-    currentAudio.volume = Math.max(0, 1 - progress);
+    currentAudio.volume = Math.max(0, masterVolume * (1 - progress));
     
     if (step >= fadeSteps) {
       clearInterval(fadeOutTimer);
       currentAudio.pause();
       currentAudio.currentTime = 0;
-      currentAudio.volume = 1.0;
+      currentAudio.volume = masterVolume;
       isPlaying = false;
       playBtn.disabled = false;
       stopBtn.disabled = true;
@@ -173,13 +505,13 @@ async function switchStation(newStation) {
       step++;
       const progress = step / fadeSteps;
       
-      currentAudio.volume = Math.max(0, 1 - progress);
-      nextAudio.volume = Math.min(1, progress);
+      currentAudio.volume = Math.max(0, masterVolume * (1 - progress));
+      nextAudio.volume = Math.min(masterVolume, masterVolume * progress);
       
       if (step >= fadeSteps) {
         clearInterval(fadeTimer);
         currentAudio.pause();
-        currentAudio.volume = 1.0;
+        currentAudio.volume = masterVolume;
         
         const temp = currentAudio;
         currentAudio = nextAudio;
