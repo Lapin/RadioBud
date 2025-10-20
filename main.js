@@ -3,11 +3,12 @@ const path = require('path');
 
 let mainWindow;
 
-function createWindow() {
+function createSplashWindow() {
   mainWindow = new BrowserWindow({
     width: 300,
-    minHeight: 100,
-    maxHeight: 800,
+    height: 200,
+    title: 'RadioBud',
+    titleBarStyle: 'hiddenInset',
     resizable: false,
     alwaysOnTop: true,
     webPreferences: {
@@ -16,15 +17,49 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile('index.html');
-  mainWindow.setMenuBarVisibility(false);
+  mainWindow.loadFile('splash.html');
+  
+  mainWindow.on('blur', () => {
+    mainWindow.setWindowButtonVisibility(false);
+  });
+  
+  mainWindow.on('focus', () => {
+    mainWindow.setWindowButtonVisibility(true);
+  });
 
-  mainWindow.webContents.on('did-finish-load', () => {
-    updateWindowHeight();
+  const startTime = Date.now();
+  let splashShown = false;
+
+  mainWindow.webContents.once('did-finish-load', () => {
+    const loadTime = Date.now() - startTime;
+    
+    if (loadTime > 500) {
+      splashShown = true;
+      setTimeout(() => {
+        mainWindow.webContents.executeJavaScript(`
+          document.body.classList.add('fade-out');
+        `);
+        
+        setTimeout(() => {
+          loadMainApp();
+        }, 500);
+      }, 2000);
+    } else {
+      loadMainApp();
+    }
   });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+}
+
+function loadMainApp() {
+  mainWindow.setSize(300, 400);
+  mainWindow.loadFile('index.html');
+
+  mainWindow.webContents.once('did-finish-load', () => {
+    updateWindowHeight();
   });
 }
 
@@ -39,7 +74,7 @@ function updateWindowHeight() {
   }
 }
 
-app.on('ready', createWindow);
+app.on('ready', createSplashWindow);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -49,7 +84,7 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (mainWindow === null) {
-    createWindow();
+    createSplashWindow();
   }
 });
 
