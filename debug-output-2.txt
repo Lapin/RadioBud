@@ -1,0 +1,26 @@
+[1760985853005] === APP READY ===
+[1760985853006] === CREATING SPLASH WINDOW ===
+[1760985853088] Window created - frame: default(true), size: 300x200
+[1760985853088] Window isVisible: true
+[1760985853088] Window isFocused: false
+[1760985853094] Loading splash.html...
+[1760985853294] splash.html - did-finish-load
+[1760985853294] Window isVisible after load: true
+[1760985855300] === STARTING FADE OUT (2000ms elapsed) ===
+[1760985855300] fade-out class added to body
+[1760985855805] === LOADING MAIN APP (2500ms elapsed) ===
+[1760985855805] loadMainApp() called
+[1760985855805] Current window state - isVisible: true, size: 300,200
+[1760985855806] Window resized to 300x400
+[1760985855806] splash.html - did-start-loading
+[1760985855806] Loading index.html...
+[1760985857278] index.html - did-finish-load
+[1760985857278] Window state after load - isVisible: true
+[1760985857278] updateWindowHeight() called
+[1760985857279] Measured scrollHeight: 389px
+[1760985857279] Calculated boundedHeight: 389px
+[1760985857280] Window resized to 300x389
+[1760985857280] Final window size: 300,417
+[1760985858285] 
+=== DEBUG LOG COMPLETE ===
+[1760985858285] Total events logged: 24
