@@ -56,6 +56,9 @@ All notable changes to RadioBud will be documented in this file.
 - Canvas API for color extraction from album artwork
 - Event listener optimization (changed .on() to .once())
 - Smart splash screen timing with load detection
+- electron-builder integration for creating distributable executables
+- Build support for Mac (.app, .dmg), Windows (.exe), and Linux (AppImage, .deb)
+- Removed unused colorthief dependency to simplify build process
 
 ## [0.1.0] - 2025-01-20
 

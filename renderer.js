@@ -79,8 +79,6 @@ const stationApiMap = {
 const LASTFM_API_KEY = 'b25b959554ed76058ac220b7b2e0a026';
 const YOUTUBE_API_KEY = 'AIzaSyDGVos9wmevE8PhmxukbAoCCvoTWfMBtjQ';
 const { shell } = require('electron');
-const ColorThief = require('colorthief');
-
 let currentStation = 'groovesalad';
 let currentAudio = new Audio(stations[currentStation]);
 let nextAudio = new Audio();
