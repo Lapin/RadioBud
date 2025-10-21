@@ -13,10 +13,12 @@ function createSplashWindow() {
     alwaysOnTop: true,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      webSecurity: false
     }
   });
 
+  mainWindow.center();
   mainWindow.loadFile('splash.html');
   
   mainWindow.on('blur', () => {
@@ -56,6 +58,7 @@ function createSplashWindow() {
 
 function loadMainApp() {
   mainWindow.setSize(300, 400);
+  mainWindow.center();
   mainWindow.loadFile('index.html');
 
   mainWindow.webContents.once('did-finish-load', () => {
@@ -70,6 +73,7 @@ function updateWindowHeight() {
     `).then((height) => {
       const boundedHeight = Math.min(Math.max(height, 100), 800);
       mainWindow.setContentSize(300, boundedHeight);
+      mainWindow.center();
     });
   }
 }
