@@ -76,8 +76,8 @@ const stationApiMap = {
   doomed: 'doomed'
 };
 
-const LASTFM_API_KEY = 'b25b959554ed76058ac220b7b2e0a026';
-const YOUTUBE_API_KEY = 'AIzaSyDGVos9wmevE8PhmxukbAoCCvoTWfMBtjQ';
+const LASTFM_API_KEY = '';
+const YOUTUBE_API_KEY = '';
 const { shell } = require('electron');
 let currentStation = 'groovesalad';
 let currentAudio = new Audio(stations[currentStation]);
