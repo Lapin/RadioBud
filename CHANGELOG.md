@@ -47,8 +47,9 @@ All notable changes to RadioBud will be documented in this file.
 - Container padding adjusted for title bar space (25px top)
 
 ### Technical
-- Last.fm API integration for album metadata
-- YouTube Data API v3 for thumbnail fallback
+- iTunes Search API for primary album artwork (no API key required)
+- Last.fm API for fallback album metadata (free public key)
+- Removed YouTube Data API (security/cost concerns for public distribution)
 - IPC communication for window resizing
 - Electron shell integration for external links
 - Smart caching system for album artwork

@@ -76,8 +76,7 @@ const stationApiMap = {
   doomed: 'doomed'
 };
 
-const LASTFM_API_KEY = '';
-const YOUTUBE_API_KEY = '';
+const LASTFM_API_KEY = 'b25b959554ed76058ac220b7b2e0a026';
 const { shell } = require('electron');
 let currentStation = 'groovesalad';
 let currentAudio = new Audio(stations[currentStation]);
@@ -144,6 +143,25 @@ function addToHistory(song) {
   }
 }
 
+async function fetchItunesArt(artist, title) {
+  try {
+    const query = encodeURIComponent(`${artist} ${title}`);
+    const url = `https://itunes.apple.com/search?term=${query}&media=music&entity=song&limit=1`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.results && data.results.length > 0) {
+      const artUrl = data.results[0].artworkUrl100;
+      return artUrl ? artUrl.replace('100x100', '600x600') : null;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching iTunes art:', error);
+    return null;
+  }
+}
+
+
 async function fetchLastfmArt(artist, title) {
   try {
     const url = `https://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key=${LASTFM_API_KEY}&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(title)}&format=json`;
@@ -158,24 +176,6 @@ async function fetchLastfmArt(artist, title) {
   }
 }
 
-async function fetchYouTubeThumbnail(artist, title) {
-  try {
-    const query = encodeURIComponent(`${artist} ${title}`);
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&type=video&maxResults=1&key=${YOUTUBE_API_KEY}`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    if (data.items && data.items.length > 0) {
-      return data.items[0].snippet.thumbnails.high.url;
-    }
-    return null;
-  } catch (error) {
-    console.error('Error fetching YouTube thumbnail:', error);
-    return null;
-  }
-}
-
 async function fetchAlbumArt(artist, title) {
   const cacheKey = `art_${artist}_${title}`.toLowerCase().replace(/\s+/g, '_');
   const cached = localStorage.getItem(cacheKey);
@@ -184,10 +184,10 @@ async function fetchAlbumArt(artist, title) {
     return cached;
   }
   
-  let artUrl = await fetchLastfmArt(artist, title);
+  let artUrl = await fetchItunesArt(artist, title);
   
   if (!artUrl) {
-    artUrl = await fetchYouTubeThumbnail(artist, title);
+    artUrl = await fetchLastfmArt(artist, title);
   }
   
   if (artUrl) {

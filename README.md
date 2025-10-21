@@ -32,23 +32,7 @@ Download the latest release from the [Releases](https://github.com/Lapin/RadioBu
    npm install
    ```
 
-3. **Configure API Keys** (required for album artwork):
-   
-   Open `renderer.js` and add your API keys on lines 79-80:
-   
-   ```javascript
-   const LASTFM_API_KEY = 'your_lastfm_api_key_here';
-   const YOUTUBE_API_KEY = 'your_youtube_api_key_here';
-   ```
-
-   **Where to get API keys:**
-   - **Last.fm API Key**: https://www.last.fm/api/account/create
-   - **YouTube API Key**: https://console.cloud.google.com/apis/credentials
-     - Create a project → Enable YouTube Data API v3 → Create credentials (API key)
-
-   > **Note**: The app will work without API keys, but album artwork features will be disabled.
-
-4. Run the app:
+3. Run the app:
    ```bash
    npm start
    ```
@@ -80,13 +64,23 @@ Built apps will be in the `dist/` folder.
 - **Star Button**: Add current song to favorites
 - **Tabs**: Switch between Radio, History, and Favorites
 
+## Album Artwork
+
+RadioBud fetches album artwork automatically using a cascading fallback system:
+
+1. **Primary**: iTunes Search API (no API key required)
+2. **Fallback**: Last.fm API (uses public demo key, free & safe)
+3. **Final**: "No Artwork" placeholder
+
+> **Note**: The app works completely out of the box with no API key configuration needed. Album artwork is provided for free through iTunes and Last.fm public APIs.
+
 ## Tech Stack
 
 - Electron
 - HTML5 Audio API
 - SomaFM Streaming API
-- Last.fm API (album metadata)
-- YouTube Data API v3 (thumbnail fallback)
+- iTunes Search API (album artwork - no auth required)
+- Last.fm API (album metadata fallback - free public key)
 
 ## License
 
