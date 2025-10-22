@@ -21,29 +21,46 @@ Electron-based desktop radio app for streaming 36+ SomaFM stations with smooth c
 - **Comments**: Avoid unnecessary comments unless documenting complex logic
 
 ## Architecture
-- `main.js`: Electron main process, 300x180px always-on-top window
-- `index.html`: Left-aligned UI with dropdown, now playing, and controls
-- `renderer.js`: Dual audio system with cross-fade logic, SomaFM API integration
+- `main.js`: Electron main process, 300x400px window (no longer always-on-top)
+- `index.html`: Tabbed UI (Radio/History/Favorites) with left-aligned controls
+- `renderer.js`: Dual audio system with cross-fade logic, SomaFM API integration, favorites/history tracking
 - `styles.css`: Minimalist white theme with subtle borders
+- `splash.html` + `splash.css`: Splash screen shown if load takes >500ms
 - **Stations**: 36 SomaFM stations via dropdown (groovesalad, dronezone, etc.)
 - **API**: Fetches now playing from `https://somafm.com/songs/{station}.json`
-- **Song History**: API returns array of 10-18 songs (index 0 = most recent)
+- **Storage**: localStorage for history (last 100 songs) and favorites
+- **Album Art**: iTunes Search API (primary) + Last.fm API (fallback)
 
 ## Audio Fade Timings
 - **Play**: 1000ms fade-in from silence (20 steps × 50ms)
 - **Stop**: 500ms fade-out to silence (10 steps × 50ms)
 - **Station switch**: 1000ms cross-fade between stations (20 steps × 50ms)
 
-## Planned Features (Assessed)
-- ✓ **Volume slider**: Feasible, control audio.volume (0.0-1.0)
-- ✓ **SomaFM logo**: Feasible, use station logos or main logo
-- ✓ **Song history**: Feasible, display songs[1-5] from API response
-- ⚠ **Album artwork**: Limited - SomaFM API doesn't provide, needs external API (Last.fm/MusicBrainz)
+## Completed Features
+- ✓ **Volume slider**: Master volume control (0-100%)
+- ✓ **Song history**: Last 100 played songs with timestamps
+- ✓ **Favorites**: Star songs and view favorites list
+- ✓ **Album artwork**: iTunes + Last.fm APIs with caching
+- ✓ **Expanded view**: Click album art for full-size view with gradient background
+- ✓ **Service links**: Last.fm, Bandcamp, YouTube search links
+- ✓ **Native window**: macOS traffic light controls (red/yellow/green)
+- ✓ **Tabbed UI**: Radio, History, Favorites tabs
+- ✓ **Dynamic window**: Auto-adjusts height (100-800px)
+
+## Bug Fixes (Recent - v0.2.0)
+- ✓ Fixed special characters breaking favorite removal (ID normalization)
+- ✓ Fixed HTML injection vulnerability in history/favorites rendering
+- ✓ Fixed expand view when no artwork available
+- ✓ Added migration system for favorites with old ID format
+- ✓ Removed always-on-top behavior
+- ✓ Immediate stop on audio device change (no fade-out delay)
 
 ## General Guidelines
 - Keep it minimal and lightweight
-- Always-on-top window by default
+- Normal window behavior (no longer always-on-top)
 - No external dependencies beyond Electron
 - Maintain smooth audio transitions with dual audio elements
 - Update CHANGELOG.md for all notable changes
 - Follow existing fade timing patterns when adding features
+- Use array indices for data binding (avoid JSON.stringify in HTML attributes)
+- Normalize song IDs to handle special characters (NFD normalization + sanitization)

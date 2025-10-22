@@ -111,9 +111,32 @@ function loadFromStorage() {
   if (savedFavorites) {
     try {
       favorites = JSON.parse(savedFavorites);
+      migrateFavoritesIfNeeded();
     } catch (e) {
       console.error('Error loading favorites:', e);
     }
+  }
+}
+
+function migrateFavoritesIfNeeded() {
+  const migrated = localStorage.getItem('radiobudFavoritesMigrated');
+  if (migrated !== 'v2') {
+    console.log('Migrating favorites to new ID format...');
+    const uniqueFavorites = [];
+    const seenIds = new Set();
+    
+    favorites.forEach(fav => {
+      const newId = getSongId(fav);
+      if (!seenIds.has(newId)) {
+        seenIds.add(newId);
+        uniqueFavorites.push(fav);
+      }
+    });
+    
+    favorites = uniqueFavorites;
+    saveToStorage();
+    localStorage.setItem('radiobudFavoritesMigrated', 'v2');
+    console.log('Migration complete. Favorites count:', favorites.length);
   }
 }
 
@@ -123,7 +146,12 @@ function saveToStorage() {
 }
 
 function getSongId(song) {
-  return `${song.artist}-${song.title}`.toLowerCase().replace(/\s+/g, '-');
+  return `${song.artist}-${song.title}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-');
 }
 
 function addToHistory(song) {
@@ -143,7 +171,7 @@ function addToHistory(song) {
   }
 }
 
-async function fetchItunesArt(artist, title) {
+async function fetchItunesData(artist, title) {
   try {
     const query = encodeURIComponent(`${artist} ${title}`);
     const url = `https://itunes.apple.com/search?term=${query}&media=music&entity=song&limit=1`;
@@ -151,12 +179,18 @@ async function fetchItunesArt(artist, title) {
     const data = await response.json();
     
     if (data.results && data.results.length > 0) {
-      const artUrl = data.results[0].artworkUrl100;
-      return artUrl ? artUrl.replace('100x100', '600x600') : null;
+      const track = data.results[0];
+      return {
+        artUrl: track.artworkUrl100 ? track.artworkUrl100.replace('100x100', '600x600') : null,
+        albumName: track.collectionName || null,
+        releaseYear: track.releaseDate ? new Date(track.releaseDate).getFullYear() : null,
+        genre: track.primaryGenreName || null,
+        trackUrl: track.trackViewUrl || null
+      };
     }
     return null;
   } catch (error) {
-    console.error('Error fetching iTunes art:', error);
+    console.error('Error fetching iTunes data:', error);
     return null;
   }
 }
@@ -178,13 +212,24 @@ async function fetchLastfmArt(artist, title) {
 
 async function fetchAlbumArt(artist, title) {
   const cacheKey = `art_${artist}_${title}`.toLowerCase().replace(/\s+/g, '_');
+  const metaCacheKey = `meta_${artist}_${title}`.toLowerCase().replace(/\s+/g, '_');
   const cached = localStorage.getItem(cacheKey);
   
   if (cached && cached !== 'null') {
     return cached;
   }
   
-  let artUrl = await fetchItunesArt(artist, title);
+  const itunesData = await fetchItunesData(artist, title);
+  let artUrl = itunesData?.artUrl;
+  
+  if (itunesData) {
+    localStorage.setItem(metaCacheKey, JSON.stringify({
+      albumName: itunesData.albumName,
+      releaseYear: itunesData.releaseYear,
+      genre: itunesData.genre,
+      trackUrl: itunesData.trackUrl
+    }));
+  }
   
   if (!artUrl) {
     artUrl = await fetchLastfmArt(artist, title);
@@ -199,6 +244,19 @@ async function fetchAlbumArt(artist, title) {
   return artUrl;
 }
 
+function getTrackMetadata(artist, title) {
+  const metaCacheKey = `meta_${artist}_${title}`.toLowerCase().replace(/\s+/g, '_');
+  const cached = localStorage.getItem(metaCacheKey);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+}
+
 function updateAlbumArt(artUrl) {
   const albumArtEl = document.getElementById('albumArt');
   
@@ -211,18 +269,17 @@ function updateAlbumArt(artUrl) {
         </svg>
       </div>
     `;
-    
-    albumArtEl.onclick = () => {
-      if (currentSong) {
-        openExpandedView(artUrl);
-      } else {
-        console.warn('No song currently playing');
-      }
-    };
   } else {
     albumArtEl.innerHTML = '<span class="no-artwork">No Artwork</span>';
-    albumArtEl.onclick = null;
   }
+  
+  albumArtEl.onclick = () => {
+    if (currentSong) {
+      openExpandedView(artUrl);
+    } else {
+      console.warn('No song currently playing');
+    }
+  };
 }
 
 function generateServiceLinks(artist, title) {
@@ -275,9 +332,28 @@ async function fetchNowPlaying() {
       
       const artUrl = await fetchAlbumArt(song.artist, song.title);
       updateAlbumArt(artUrl);
+      updateTrackMetadata(song.artist, song.title);
     }
   } catch (error) {
     console.error('Error fetching now playing:', error);
+  }
+}
+
+function updateTrackMetadata(artist, title) {
+  const trackMetaEl = document.getElementById('trackMeta');
+  const metadata = getTrackMetadata(artist, title);
+  
+  if (metadata && (metadata.albumName || metadata.releaseYear || metadata.genre)) {
+    const parts = [];
+    if (metadata.albumName) parts.push(metadata.albumName);
+    if (metadata.releaseYear) parts.push(metadata.releaseYear);
+    if (metadata.genre) parts.push(metadata.genre);
+    
+    trackMetaEl.textContent = parts.join(' • ');
+    trackMetaEl.style.display = 'block';
+  } else {
+    trackMetaEl.textContent = '';
+    trackMetaEl.style.display = 'none';
   }
 }
 
@@ -288,20 +364,30 @@ function isFavorited(song) {
 
 function toggleFavorite(song) {
   const songId = getSongId(song);
+  console.log('Toggling favorite:', song.artist, '-', song.title, '| ID:', songId);
+  console.log('Current favorites IDs:', favorites.map(f => getSongId(f)));
+  
   const index = favorites.findIndex(fav => getSongId(fav) === songId);
+  console.log('Found at index:', index);
   
   if (index === -1) {
     favorites.push({
       ...song,
-      station: currentStation,
+      station: currentStation || song.station,
       favoritedAt: Date.now()
     });
+    console.log('Added to favorites');
   } else {
     favorites.splice(index, 1);
+    console.log('Removed from favorites');
   }
   
   saveToStorage();
   updateStarIcons();
+  
+  if (document.getElementById('favoritesView').classList.contains('hidden') === false) {
+    renderFavorites();
+  }
 }
 
 function updateStarIcons() {
@@ -379,9 +465,16 @@ function openExpandedView(artUrl) {
   const container = document.createElement('div');
   container.className = 'expanded-container';
   
-  const img = document.createElement('img');
-  img.src = artUrl;
-  img.className = 'expanded-art';
+  let artElement;
+  if (artUrl) {
+    artElement = document.createElement('img');
+    artElement.src = artUrl;
+    artElement.className = 'expanded-art';
+  } else {
+    artElement = document.createElement('div');
+    artElement.className = 'expanded-art expanded-no-art';
+    artElement.innerHTML = '<span class="no-artwork-expanded">No Artwork</span>';
+  }
   
   const infoRow = document.createElement('div');
   infoRow.className = 'expanded-info-row';
@@ -401,7 +494,7 @@ function openExpandedView(artUrl) {
   closeBtn.className = 'expanded-close';
   closeBtn.innerHTML = '×';
   
-  container.appendChild(img);
+  container.appendChild(artElement);
   container.appendChild(infoRow);
   container.appendChild(controlsRow);
   
@@ -410,43 +503,45 @@ function openExpandedView(artUrl) {
   
   overlay.style.background = 'rgba(0, 0, 0, 0.95)';
   
-  img.onload = () => {
-    const tempCanvas = document.createElement('canvas');
-    const ctx = tempCanvas.getContext('2d');
-    tempCanvas.width = img.naturalWidth;
-    tempCanvas.height = img.naturalHeight;
-    
-    try {
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-      const data = imageData.data;
+  if (artUrl && artElement.tagName === 'IMG') {
+    artElement.onload = () => {
+      const tempCanvas = document.createElement('canvas');
+      const ctx = tempCanvas.getContext('2d');
+      tempCanvas.width = artElement.naturalWidth;
+      tempCanvas.height = artElement.naturalHeight;
       
-      let r = 0, g = 0, b = 0;
-      const sampleSize = 10;
-      let count = 0;
-      
-      for (let i = 0; i < data.length; i += 4 * sampleSize) {
-        r += data[i];
-        g += data[i + 1];
-        b += data[i + 2];
-        count++;
+      try {
+        ctx.drawImage(artElement, 0, 0);
+        const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+        const data = imageData.data;
+        
+        let r = 0, g = 0, b = 0;
+        const sampleSize = 10;
+        let count = 0;
+        
+        for (let i = 0; i < data.length; i += 4 * sampleSize) {
+          r += data[i];
+          g += data[i + 1];
+          b += data[i + 2];
+          count++;
+        }
+        
+        r = Math.floor(r / count);
+        g = Math.floor(g / count);
+        b = Math.floor(b / count);
+        
+        overlay.style.background = `
+          linear-gradient(
+            135deg,
+            rgba(${r}, ${g}, ${b}, 0.95) 0%,
+            rgba(${Math.floor(r * 0.5)}, ${Math.floor(g * 0.5)}, ${Math.floor(b * 0.5)}, 0.98) 100%
+          )
+        `;
+      } catch (error) {
+        console.error('Error extracting color:', error);
       }
-      
-      r = Math.floor(r / count);
-      g = Math.floor(g / count);
-      b = Math.floor(b / count);
-      
-      overlay.style.background = `
-        linear-gradient(
-          135deg,
-          rgba(${r}, ${g}, ${b}, 0.95) 0%,
-          rgba(${Math.floor(r * 0.5)}, ${Math.floor(g * 0.5)}, ${Math.floor(b * 0.5)}, 0.98) 100%
-        )
-      `;
-    } catch (error) {
-      console.error('Error extracting color:', error);
-    }
-  };
+    };
+  }
   
   const closeExpanded = () => {
     overlay.classList.add('expanded-closing');
@@ -523,12 +618,12 @@ function renderHistory() {
     return;
   }
   
-  historyContent.innerHTML = playHistory.map(song => {
+  historyContent.innerHTML = playHistory.map((song, index) => {
     const isFav = isFavorited(song);
     const timeStr = formatTime(song.timestamp);
     return `
       <div class="history-item">
-        <button class="history-item-star" data-song='${JSON.stringify(song)}'>${isFav ? '★' : '☆'}</button>
+        <button class="history-item-star" data-index="${index}">${isFav ? '★' : '☆'}</button>
         <div class="history-item-info">
           <div class="history-item-song">${song.artist} - ${song.title}</div>
           <div class="history-item-meta">${song.station} • ${timeStr}</div>
@@ -539,7 +634,8 @@ function renderHistory() {
   
   historyContent.querySelectorAll('.history-item-star').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const song = JSON.parse(e.target.dataset.song);
+      const index = parseInt(e.target.dataset.index);
+      const song = playHistory[index];
       toggleFavorite(song);
       renderHistory();
     });
@@ -552,14 +648,39 @@ function renderFavorites() {
     return;
   }
   
-  favoritesContent.innerHTML = favorites.map(song => {
+  const sortedFavorites = [...favorites].sort((a, b) => b.favoritedAt - a.favoritedAt);
+  
+  favoritesContent.innerHTML = sortedFavorites.map((song, index) => {
     const timeStr = formatTime(song.favoritedAt);
+    const { lastfmUrl, bandcampUrl, youtubeUrl } = generateServiceLinks(song.artist, song.title);
     return `
-      <div class="history-item">
-        <button class="history-item-star" data-song='${JSON.stringify(song)}'>★</button>
+      <div class="history-item history-item-with-art">
+        <div class="history-item-album-art" data-index="${index}">
+          <span class="no-artwork-small">...</span>
+        </div>
+        <button class="history-item-star" data-index="${index}">★</button>
         <div class="history-item-info">
           <div class="history-item-song">${song.artist} - ${song.title}</div>
-          <div class="history-item-meta">${song.station} • ${timeStr}</div>
+          <div class="history-item-meta">
+            ${song.station} • ${timeStr}
+            <span class="history-item-links">
+              <a class="history-service-icon" data-url="${lastfmUrl}" title="Last.fm">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M10.584 17.21l-.88-2.392s-1.43 1.594-3.573 1.594c-1.897 0-3.244-1.649-3.244-4.288 0-3.382 1.704-4.591 3.381-4.591 2.419 0 3.188 1.567 3.849 3.574l.88 2.75c.88 2.667 2.524 4.8 7.287 4.8 3.408 0 5.716-1.045 5.716-3.79 0-2.227-1.265-3.381-3.624-3.932l-1.759-.385c-1.21-.275-1.567-.77-1.567-1.595 0-.934.742-1.485 1.952-1.485 1.32 0 2.034.495 2.145 1.677l2.749-.33c-.22-2.474-1.924-3.492-4.729-3.492-2.474 0-4.893.935-4.893 3.932 0 1.87.907 3.052 3.188 3.546l1.869.44c1.402.33 1.869.907 1.869 1.704 0 1.017-.99 1.43-2.86 1.43-2.776 0-3.932-1.457-4.591-3.464l-.907-2.75c-1.155-3.573-2.997-4.893-6.653-4.893C2.144 5.333 0 7.89 0 12.233c0 4.18 2.144 6.434 5.993 6.434 3.106 0 4.591-1.457 4.591-1.457z"/>
+                </svg>
+              </a>
+              <a class="history-service-icon" data-url="${bandcampUrl}" title="Bandcamp">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M0 18.75l7.437-13.5h16.563l-7.438 13.5z"/>
+                </svg>
+              </a>
+              <a class="history-service-icon" data-url="${youtubeUrl}" title="YouTube">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+              </a>
+            </span>
+          </div>
         </div>
       </div>
     `;
@@ -567,10 +688,31 @@ function renderFavorites() {
   
   favoritesContent.querySelectorAll('.history-item-star').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const song = JSON.parse(e.target.dataset.song);
+      const index = parseInt(e.target.dataset.index);
+      const song = sortedFavorites[index];
       toggleFavorite(song);
       renderFavorites();
     });
+  });
+  
+  favoritesContent.querySelectorAll('.history-service-icon').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const url = e.currentTarget.dataset.url;
+      shell.openExternal(url);
+    });
+  });
+  
+  sortedFavorites.forEach(async (song, index) => {
+    const artUrl = await fetchAlbumArt(song.artist, song.title);
+    const artEl = favoritesContent.querySelector(`.history-item-album-art[data-index="${index}"]`);
+    if (artEl) {
+      if (artUrl) {
+        artEl.innerHTML = `<img src="${artUrl}" alt="Album Art" class="history-item-art-img">`;
+      } else {
+        artEl.innerHTML = '<span class="no-artwork-small">—</span>';
+      }
+    }
   });
 }
 
@@ -680,3 +822,77 @@ currentAudio.addEventListener('error', (e) => {
 nextAudio.addEventListener('error', (e) => {
   console.error('Next audio error:', e);
 });
+
+let lastDeviceSnapshot = [];
+
+async function getAudioDeviceSnapshot() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
+    return audioOutputs.map(d => ({ id: d.deviceId, label: d.label }));
+  } catch (error) {
+    console.error('Error getting audio devices:', error);
+  }
+  return [];
+}
+
+function devicesChanged(oldDevices, newDevices) {
+  if (oldDevices.length !== newDevices.length) {
+    return true;
+  }
+  
+  const oldIds = new Set(oldDevices.map(d => d.id));
+  const newIds = new Set(newDevices.map(d => d.id));
+  
+  for (const id of oldIds) {
+    if (!newIds.has(id)) {
+      return true;
+    }
+  }
+  
+  for (const id of newIds) {
+    if (!oldIds.has(id)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+async function handleAudioDeviceChange() {
+  console.log('Device change event detected');
+  const newSnapshot = await getAudioDeviceSnapshot();
+  
+  console.log('Previous devices:', lastDeviceSnapshot.length);
+  console.log('Current devices:', newSnapshot.length);
+  
+  const configChanged = lastDeviceSnapshot.length > 0 && devicesChanged(lastDeviceSnapshot, newSnapshot);
+  
+  if (configChanged) {
+    console.log('Audio device configuration changed');
+    console.log('Old:', lastDeviceSnapshot.map(d => d.label || d.id));
+    console.log('New:', newSnapshot.map(d => d.label || d.id));
+  }
+  
+  if (isPlaying && lastDeviceSnapshot.length > 0) {
+    console.log('Audio output may have changed, stopping playback immediately');
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio.volume = masterVolume;
+    isPlaying = false;
+    playBtn.disabled = false;
+    stopBtn.disabled = true;
+  }
+  
+  lastDeviceSnapshot = newSnapshot;
+}
+
+if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+  navigator.mediaDevices.addEventListener('devicechange', handleAudioDeviceChange);
+  getAudioDeviceSnapshot().then(snapshot => {
+    lastDeviceSnapshot = snapshot;
+    console.log('Initial audio devices:', snapshot.map(d => d.label || d.id));
+  });
+} else {
+  console.warn('MediaDevices API not available');
+}

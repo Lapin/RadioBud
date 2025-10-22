@@ -10,7 +10,7 @@ function createSplashWindow() {
     title: 'RadioBud',
     titleBarStyle: 'hiddenInset',
     resizable: false,
-    alwaysOnTop: true,
+    alwaysOnTop: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,

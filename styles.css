@@ -147,6 +147,16 @@ body {
   flex: 1;
 }
 
+.track-meta {
+  font-size: 10px;
+  color: #999;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: none;
+}
+
 .star-btn {
   font-size: 18px;
   background: none;
@@ -342,6 +352,36 @@ body {
   font-size: 11px;
 }
 
+.history-item-with-art {
+  gap: 10px;
+}
+
+.history-item-album-art {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9f9f9;
+  overflow: hidden;
+}
+
+.history-item-art-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-artwork-small {
+  font-size: 8px;
+  color: #ccc;
+  font-weight: 500;
+}
+
 .history-item:last-child {
   border-bottom: none;
 }
@@ -382,6 +422,34 @@ body {
   color: #999;
   font-size: 10px;
   margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-item-links {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.history-service-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.history-service-icon:hover {
+  color: #333;
+  transform: scale(1.15);
+}
+
+.history-service-icon svg {
+  width: 12px;
+  height: 12px;
 }
 
 .history-empty {
@@ -428,6 +496,22 @@ body {
   object-fit: cover;
   border-radius: 8px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.expanded-no-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.no-artwork-expanded {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 2px;
 }
 
 .expanded-info-row {

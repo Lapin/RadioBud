@@ -6,12 +6,16 @@ A minimal desktop radio app for streaming 36+ SomaFM stations with smooth cross-
 
 - Stream 36 SomaFM radio stations
 - Smooth audio cross-fading (1000ms transitions)
-- Real-time track information display
-- Album artwork with expanded view
-- Song history and favorites tracking
+- Real-time track information with iTunes metadata (album, year, genre)
+- Album artwork with expandable view (works even without artwork)
+- Song history tracking (last 100 songs)
+- Favorites system with album art and service links
+- Auto-stop playback when audio device changes
+- Tabbed interface (Radio, History, Favorites)
+- Service links: Last.fm, Bandcamp, YouTube search
 - Clean, minimal user interface
-- Always-on-top window
 - Native macOS window controls
+- Dynamic window sizing
 
 ## Installation
 
@@ -57,12 +61,14 @@ Built apps will be in the `dist/` folder.
 
 ## Usage
 
-- **Select Station**: Choose from dropdown menu
+- **Select Station**: Choose from 36 SomaFM stations in dropdown
 - **Play/Stop**: Control playback with buttons
-- **Volume**: Adjust with slider
-- **Album Art**: Click to view expanded view
+- **Volume**: Adjust with slider (0-100%)
+- **Album Art**: Click to view expanded view with color-extracted gradient
 - **Star Button**: Add current song to favorites
 - **Tabs**: Switch between Radio, History, and Favorites
+- **Service Links**: Quick access to Last.fm, Bandcamp, and YouTube for each track
+- **Device Changes**: Playback automatically stops when switching audio outputs
 
 ## Album Artwork
 

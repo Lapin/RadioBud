@@ -1,6 +1,6 @@
 {
   "name": "radiobud",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "A minimal radio app for streaming SomaFM",
   "main": "main.js",
   "scripts": {
