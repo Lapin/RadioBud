@@ -341,6 +341,9 @@ body {
 
 .history-content {
   -webkit-app-region: no-drag;
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .history-item {

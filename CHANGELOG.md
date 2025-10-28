@@ -4,6 +4,24 @@ All notable changes to RadioBud will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.1] - 2025-10-28
+
+### Fixed
+- Fixed random playback stopping issue with comprehensive error handling
+- Added automatic stream recovery when audio errors occur (up to 3 retries)
+- Added stalled stream detection with 10-second timeout and auto-recovery
+- Added monitoring for unexpected pauses with automatic resume
+- Added handling for unexpected stream end events with auto-restart
+- Improved audio device change detection (only stops on device removal, not addition)
+- Added detailed error logging with error codes, network state, and ready state
+- Added event handlers for `stalled`, `waiting`, `playing`, `suspend`, `abort`, `pause`, and `ended` events
+
+### Changed
+- Audio elements now use `preload='auto'` for better buffering
+- Device change handler now differentiates between device addition and removal
+- Error recovery includes exponential backoff with 2-second retry delay
+- Added error count tracking with 5-second window for rate limiting
+
 ## [0.2.0] - 2025-10-22
 
 ### Added

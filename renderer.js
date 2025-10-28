@@ -93,7 +93,10 @@ const stationSelect = document.getElementById('stationSelect');
 const nowPlaying = document.getElementById('nowPlaying');
 const volumeSlider = document.getElementById('volumeSlider');
 
+// Configure audio elements for better streaming
+currentAudio.preload = 'auto';
 currentAudio.volume = masterVolume;
+nextAudio.preload = 'auto';
 nextAudio.volume = 0.0;
 
 function loadFromStorage() {
@@ -440,8 +443,6 @@ function switchToTab(tab) {
   
   setTimeout(() => {
     const { ipcRenderer } = require('electron');
-const { remote } = require('electron');
-const win = remote.getCurrentWindow();
     ipcRenderer.send('resize-window');
   }, 100);
 }
@@ -812,15 +813,142 @@ stationSelect.addEventListener('change', (e) => {
   switchStation(e.target.value);
 });
 
-currentAudio.addEventListener('error', (e) => {
-  console.error('Audio error:', e);
-  isPlaying = false;
-  playBtn.disabled = false;
-  stopBtn.disabled = true;
+// Enhanced error handling with recovery
+let audioErrorCount = 0;
+let lastErrorTime = 0;
+const MAX_ERROR_RETRIES = 3;
+const ERROR_RETRY_DELAY = 2000;
+
+function handleAudioError(audio, e, isCurrentAudio = true) {
+  console.error(`Audio error on ${isCurrentAudio ? 'current' : 'next'} audio:`, e);
+  console.error('Error details:', {
+    code: audio.error?.code,
+    message: audio.error?.message,
+    networkState: audio.networkState,
+    readyState: audio.readyState
+  });
+  
+  if (!isCurrentAudio) {
+    console.log('Error on next audio during preload, ignoring');
+    return;
+  }
+  
+  const now = Date.now();
+  if (now - lastErrorTime < 5000) {
+    audioErrorCount++;
+  } else {
+    audioErrorCount = 1;
+  }
+  lastErrorTime = now;
+  
+  if (audioErrorCount > MAX_ERROR_RETRIES) {
+    console.error('Too many audio errors, stopping playback');
+    isPlaying = false;
+    playBtn.disabled = false;
+    stopBtn.disabled = true;
+    nowPlaying.textContent = 'Playback failed - too many errors';
+    audioErrorCount = 0;
+    return;
+  }
+  
+  if (isPlaying) {
+    console.log(`Attempting to recover from audio error (attempt ${audioErrorCount}/${MAX_ERROR_RETRIES})`);
+    setTimeout(() => {
+      console.log('Reloading stream...');
+      audio.load();
+      audio.play().then(() => {
+        console.log('Stream recovery successful');
+        audioErrorCount = 0;
+      }).catch(err => {
+        console.error('Stream recovery failed:', err);
+      });
+    }, ERROR_RETRY_DELAY);
+  } else {
+    isPlaying = false;
+    playBtn.disabled = false;
+    stopBtn.disabled = true;
+  }
+}
+
+currentAudio.addEventListener('error', (e) => handleAudioError(currentAudio, e, true));
+nextAudio.addEventListener('error', (e) => handleAudioError(nextAudio, e, false));
+
+// Handle stream stalling
+let stallTimeout = null;
+
+function handleStalled(audio, audioName) {
+  console.warn(`${audioName} audio stalled - buffering issues detected`);
+  
+  if (stallTimeout) {
+    clearTimeout(stallTimeout);
+  }
+  
+  stallTimeout = setTimeout(() => {
+    if (isPlaying && audio === currentAudio) {
+      console.error('Stream stalled for too long, attempting recovery');
+      audio.load();
+      audio.play().catch(err => {
+        console.error('Failed to recover from stall:', err);
+        handleAudioError(audio, err, true);
+      });
+    }
+  }, 10000); // Wait 10 seconds before recovery
+}
+
+function handleWaiting(audioName) {
+  console.log(`${audioName} audio waiting for data`);
+}
+
+function handlePlaying(audioName) {
+  console.log(`${audioName} audio playing`);
+  if (stallTimeout) {
+    clearTimeout(stallTimeout);
+    stallTimeout = null;
+  }
+  audioErrorCount = 0;
+}
+
+currentAudio.addEventListener('stalled', () => handleStalled(currentAudio, 'current'));
+nextAudio.addEventListener('stalled', () => handleStalled(nextAudio, 'next'));
+
+currentAudio.addEventListener('waiting', () => handleWaiting('current'));
+nextAudio.addEventListener('waiting', () => handleWaiting('next'));
+
+currentAudio.addEventListener('playing', () => handlePlaying('current'));
+nextAudio.addEventListener('playing', () => handlePlaying('next'));
+
+currentAudio.addEventListener('suspend', () => {
+  console.log('Current audio suspended (intentional or network issue)');
 });
 
-nextAudio.addEventListener('error', (e) => {
-  console.error('Next audio error:', e);
+currentAudio.addEventListener('abort', () => {
+  console.log('Current audio aborted');
+});
+
+// Monitor for unexpected pauses
+currentAudio.addEventListener('pause', () => {
+  if (isPlaying && !currentAudio.ended) {
+    console.warn('Unexpected pause detected, attempting to resume');
+    setTimeout(() => {
+      if (isPlaying) {
+        currentAudio.play().catch(err => {
+          console.error('Failed to resume after unexpected pause:', err);
+        });
+      }
+    }, 1000);
+  }
+});
+
+// Log ended events (should not happen with streams)
+currentAudio.addEventListener('ended', () => {
+  console.warn('Current audio ended unexpectedly (stream should not end)');
+  if (isPlaying) {
+    console.log('Restarting stream...');
+    currentAudio.load();
+    currentAudio.play().catch(err => {
+      console.error('Failed to restart stream:', err);
+    });
+  }
 });
 
 let lastDeviceSnapshot = [];
@@ -872,16 +1000,25 @@ async function handleAudioDeviceChange() {
     console.log('Audio device configuration changed');
     console.log('Old:', lastDeviceSnapshot.map(d => d.label || d.id));
     console.log('New:', newSnapshot.map(d => d.label || d.id));
-  }
-  
-  if (isPlaying && lastDeviceSnapshot.length > 0) {
-    console.log('Audio output may have changed, stopping playback immediately');
-    currentAudio.pause();
-    currentAudio.currentTime = 0;
-    currentAudio.volume = masterVolume;
-    isPlaying = false;
-    playBtn.disabled = false;
-    stopBtn.disabled = true;
+    
+    // Only stop if we're playing and devices were actually removed (not just added)
+    if (isPlaying && lastDeviceSnapshot.length > 0) {
+      const oldIds = new Set(lastDeviceSnapshot.map(d => d.id));
+      const newIds = new Set(newSnapshot.map(d => d.id));
+      const devicesRemoved = [...oldIds].some(id => !newIds.has(id));
+      
+      if (devicesRemoved) {
+        console.log('Audio output device was removed, stopping playback immediately');
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio.volume = masterVolume;
+        isPlaying = false;
+        playBtn.disabled = false;
+        stopBtn.disabled = true;
+      } else {
+        console.log('New audio device added, continuing playback');
+      }
+    }
   }
   
   lastDeviceSnapshot = newSnapshot;
