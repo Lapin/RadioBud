@@ -1090,13 +1090,3 @@ if (settingsBtn) {
     console.log('Settings clicked - feature coming soon!');
   });
 }
-
-// Volume slider visual update
-if (volumeSlider) {
-  volumeSlider.addEventListener('input', (e) => {
-    const percent = e.target.value;
-    e.target.style.setProperty('--volume-percent', percent + '%');
-  });
-  // Initialize
-  volumeSlider.style.setProperty('--volume-percent', volumeSlider.value + '%');
-}

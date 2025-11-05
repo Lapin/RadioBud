@@ -20,14 +20,13 @@ body {
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   border-radius: 12px;
-  margin: 10px;
-  padding: 20px;
-  padding-bottom: 100px;
+  margin: 8px;
+  padding: 16px 20px 100px 20px;
   box-shadow: 
     0 0 0 1px rgba(0, 0, 0, 0.04),
     0 10px 40px rgba(0, 0, 0, 0.15),
     0 4px 12px rgba(0, 0, 0, 0.08);
-  min-height: calc(100vh - 20px);
+  min-height: calc(100vh - 16px);
 }
 
 /* Header */
@@ -36,9 +35,9 @@ body {
   justify-content: center;
   align-items: center;
   position: relative;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   -webkit-app-region: drag;
-  padding-top: 8px;
+  padding-top: 4px;
 }
 
 .title-text {
@@ -133,27 +132,27 @@ body {
 
 .glass-select {
   width: 100%;
-  padding: 10px 14px;
+  padding: 10px 36px 10px 14px;
   font-size: 14px;
   font-weight: 500;
   border: none;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.9);
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1.5L6 6.5L11 1.5" stroke="%23666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 12px center;
   color: #1d1d1f;
   cursor: pointer;
   box-shadow: 
     0 1px 3px rgba(0, 0, 0, 0.1),
     0 0 0 1px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s;
+  transition: box-shadow 0.2s, background-color 0.2s;
   appearance: none;
-  background-image: url('data:image/svg+xml;charset=UTF-8,<svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1.5L6 6.5L11 1.5" stroke="%23666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>');
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 36px;
+  -webkit-appearance: none;
 }
 
 .glass-select:hover {
-  background: rgba(255, 255, 255, 1);
+  background-color: rgba(255, 255, 255, 1);
   box-shadow: 
     0 2px 8px rgba(0, 0, 0, 0.12),
     0 0 0 1px rgba(0, 0, 0, 0.08);
@@ -247,10 +246,10 @@ body {
 /* Glass Control Bar */
 .glass-control-bar {
   position: fixed;
-  bottom: 10px;
-  left: 10px;
-  right: 10px;
-  height: 80px;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  height: 84px;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
@@ -364,33 +363,33 @@ body {
 
 .glass-service-icons {
   display: flex;
-  gap: 8px;
-  margin-top: 2px;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 .glass-service-icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.06);
-  color: #666;
+  background: rgba(0, 0, 0, 0.08);
+  color: #555;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
   text-decoration: none;
 }
 
 .glass-service-icon:hover {
-  background: rgba(0, 0, 0, 0.12);
-  color: #333;
-  transform: scale(1.1);
+  background: rgba(0, 0, 0, 0.15);
+  color: #1d1d1f;
+  transform: scale(1.12);
 }
 
 .glass-service-icon svg {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
 }
 
 .glass-star-btn {
@@ -423,8 +422,8 @@ body {
 .glass-volume {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 140px;
+  gap: 12px;
+  width: 160px;
 }
 
 .volume-icon {
@@ -434,37 +433,62 @@ body {
 
 .glass-volume-slider {
   flex: 1;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(0, 0, 0, 0.1);
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(200, 200, 200, 0.3);
   outline: none;
   -webkit-appearance: none;
   appearance: none;
   cursor: pointer;
+  position: relative;
 }
 
 .glass-volume-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: #fff;
+  background: #ffffff;
   box-shadow: 
-    0 1px 4px rgba(0, 0, 0, 0.2),
+    0 2px 6px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.15s;
+  margin-top: -6px;
 }
 
 .glass-volume-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
+  transform: scale(1.15);
+}
+
+.glass-volume-slider::-webkit-slider-thumb:active {
+  transform: scale(1.05);
 }
 
 .glass-volume-slider::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
-  background: linear-gradient(to right, #ff6b35 0%, #ff6b35 var(--volume-percent, 100%), rgba(0, 0, 0, 0.1) var(--volume-percent, 100%));
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: #ff6b35;
+}
+
+.glass-volume-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 
+    0 2px 6px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  border: none;
+}
+
+.glass-volume-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: #ff6b35;
 }
 
 /* History Item Styling */
