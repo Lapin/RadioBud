@@ -1063,3 +1063,40 @@ if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
 } else {
   console.warn('MediaDevices API not available');
 }
+
+// Donation link handlers
+const somaLink = document.getElementById('somaLink');
+const ntsLink = document.getElementById('ntsLink');
+
+if (somaLink) {
+  somaLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    shell.openExternal('https://somafm.com/support/');
+  });
+}
+
+if (ntsLink) {
+  ntsLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    shell.openExternal('https://www.nts.live/supporters');
+  });
+}
+
+// Settings button placeholder
+const settingsBtn = document.getElementById('settingsBtn');
+if (settingsBtn) {
+  settingsBtn.addEventListener('click', () => {
+    // Placeholder for future settings functionality
+    console.log('Settings clicked - feature coming soon!');
+  });
+}
+
+// Volume slider visual update
+if (volumeSlider) {
+  volumeSlider.addEventListener('input', (e) => {
+    const percent = e.target.value;
+    e.target.style.setProperty('--volume-percent', percent + '%');
+  });
+  // Initialize
+  volumeSlider.style.setProperty('--volume-percent', volumeSlider.value + '%');
+}

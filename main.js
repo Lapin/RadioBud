@@ -11,6 +11,9 @@ function createSplashWindow() {
     titleBarStyle: 'hiddenInset',
     resizable: false,
     alwaysOnTop: false,
+    transparent: true,
+    vibrancy: 'under-window',
+    visualEffectState: 'active',
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -57,14 +60,9 @@ function createSplashWindow() {
 }
 
 function loadMainApp() {
-  mainWindow.setSize(300, 470);
+  mainWindow.setSize(680, 580);
   mainWindow.center();
   mainWindow.loadFile('index.html');
-
-  // Don't auto-resize on load to avoid jump
-  // mainWindow.webContents.once('did-finish-load', () => {
-  //   updateWindowHeight();
-  // });
 }
 
 function updateWindowHeight() {
@@ -73,8 +71,7 @@ function updateWindowHeight() {
       document.body.scrollHeight
     `).then((height) => {
       const boundedHeight = Math.min(Math.max(height, 100), 800);
-      mainWindow.setContentSize(300, boundedHeight);
-      // Don't center - keep window position
+      mainWindow.setContentSize(680, boundedHeight);
     });
   }
 }
