@@ -53,8 +53,6 @@ body {
 }
 
 .settings-btn {
-  position: absolute;
-  right: 0;
   background: none;
   border: none;
   cursor: pointer;
@@ -63,6 +61,9 @@ body {
   color: #86868b;
   transition: all 0.15s;
   -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .settings-btn:hover {
@@ -778,6 +779,8 @@ body {
   display: flex;
   gap: 6px;
   align-items: center;
+  z-index: 10;
+  -webkit-app-region: no-drag;
 }
 
 .theme-toggle-btn {
