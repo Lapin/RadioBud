@@ -20,13 +20,13 @@ body {
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   border-radius: 12px;
-  margin: 8px;
+  margin: 0;
   padding: 16px 20px 100px 20px;
   box-shadow: 
     0 0 0 1px rgba(0, 0, 0, 0.04),
     0 10px 40px rgba(0, 0, 0, 0.15),
     0 4px 12px rgba(0, 0, 0, 0.08);
-  min-height: calc(100vh - 16px);
+  min-height: 100vh;
 }
 
 /* Header */
@@ -246,22 +246,21 @@ body {
 /* Glass Control Bar */
 .glass-control-bar {
   position: fixed;
-  bottom: 8px;
-  left: 8px;
-  right: 8px;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: 84px;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
-  border-radius: 12px;
+  border-radius: 0 0 12px 12px;
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 0 20px;
   box-shadow: 
     0 0 0 1px rgba(0, 0, 0, 0.04),
-    0 10px 40px rgba(0, 0, 0, 0.15),
-    0 4px 12px rgba(0, 0, 0, 0.08);
+    0 -2px 8px rgba(0, 0, 0, 0.08);
   -webkit-app-region: no-drag;
   z-index: 1000;
 }
