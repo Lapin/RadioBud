@@ -1084,23 +1084,23 @@ if (ntsLink) {
 
 // Settings button placeholder
 const settingsBtn = document.getElementById('settingsBtn');
-if (settingsBtn) {
-  settingsBtn.addEventListener('click', () => {
-    // Placeholder for future settings functionality
-    console.log('Settings clicked - feature coming soon!');
-  });
-}
-
-// Theme Toggle
+// Theme Toggle with Debug
+console.log('Theme toggle script loading...');
 const themeToggle = document.getElementById('themeToggle');
+console.log('Theme toggle button:', themeToggle);
+
 let currentTheme = localStorage.getItem('theme') || 'light';
+console.log('Current theme from localStorage:', currentTheme);
 
 function setTheme(theme) {
+  console.log('Setting theme to:', theme);
   currentTheme = theme;
   if (theme === 'dark') {
     document.body.classList.add('dark-theme');
+    console.log('Added dark-theme class');
   } else {
     document.body.classList.remove('dark-theme');
+    console.log('Removed dark-theme class');
   }
   localStorage.setItem('theme', theme);
 }
@@ -1109,8 +1109,15 @@ function setTheme(theme) {
 setTheme(currentTheme);
 
 if (themeToggle) {
-  themeToggle.addEventListener('click', () => {
+  console.log('Adding click listener to theme toggle');
+  themeToggle.addEventListener('click', (e) => {
+    console.log('Theme toggle clicked!');
+    e.preventDefault();
+    e.stopPropagation();
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    console.log('Switching from', currentTheme, 'to', newTheme);
     setTheme(newTheme);
   });
+} else {
+  console.error('Theme toggle button not found!');
 }

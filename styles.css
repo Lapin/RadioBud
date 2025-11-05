@@ -795,6 +795,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: auto;
+  position: relative;
+  z-index: 100;
 }
 
 .theme-toggle-btn:hover {
