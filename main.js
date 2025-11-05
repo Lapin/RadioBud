@@ -12,8 +12,9 @@ function createSplashWindow() {
     resizable: false,
     alwaysOnTop: false,
     transparent: true,
-    vibrancy: 'under-window',
+    vibrancy: 'sidebar',
     visualEffectState: 'active',
+    backgroundColor: '#00000000',
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
