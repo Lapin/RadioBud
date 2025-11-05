@@ -1090,3 +1090,27 @@ if (settingsBtn) {
     console.log('Settings clicked - feature coming soon!');
   });
 }
+
+// Theme Toggle
+const themeToggle = document.getElementById('themeToggle');
+let currentTheme = localStorage.getItem('theme') || 'light';
+
+function setTheme(theme) {
+  currentTheme = theme;
+  if (theme === 'dark') {
+    document.body.classList.add('dark-theme');
+  } else {
+    document.body.classList.remove('dark-theme');
+  }
+  localStorage.setItem('theme', theme);
+}
+
+// Initialize theme on load
+setTheme(currentTheme);
+
+if (themeToggle) {
+  themeToggle.addEventListener('click', () => {
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+  });
+}
