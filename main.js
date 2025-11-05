@@ -57,13 +57,14 @@ function createSplashWindow() {
 }
 
 function loadMainApp() {
-  mainWindow.setSize(300, 400);
+  mainWindow.setSize(300, 470);
   mainWindow.center();
   mainWindow.loadFile('index.html');
 
-  mainWindow.webContents.once('did-finish-load', () => {
-    updateWindowHeight();
-  });
+  // Don't auto-resize on load to avoid jump
+  // mainWindow.webContents.once('did-finish-load', () => {
+  //   updateWindowHeight();
+  // });
 }
 
 function updateWindowHeight() {
@@ -73,7 +74,7 @@ function updateWindowHeight() {
     `).then((height) => {
       const boundedHeight = Math.min(Math.max(height, 100), 800);
       mainWindow.setContentSize(300, boundedHeight);
-      mainWindow.center();
+      // Don't center - keep window position
     });
   }
 }

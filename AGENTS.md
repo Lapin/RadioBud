@@ -55,6 +55,13 @@ Electron-based desktop radio app for streaming 36+ SomaFM stations with smooth c
 - ✓ Removed always-on-top behavior
 - ✓ Immediate stop on audio device change (no fade-out delay)
 
+## Control Bar Layout
+The fixed bottom control bar (70px height) contains:
+- **Album Art**: 50x50px clickable thumbnail
+- **Info Section**: Song title, star button, metadata, service links (Last.fm, Bandcamp, YouTube)
+- **Play Button**: 36x36px circular play/pause toggle
+- **Volume Slider**: 60px wide range input (0-100%)
+
 ## General Guidelines
 - Keep it minimal and lightweight
 - Normal window behavior (no longer always-on-top)
@@ -64,3 +71,4 @@ Electron-based desktop radio app for streaming 36+ SomaFM stations with smooth c
 - Follow existing fade timing patterns when adding features
 - Use array indices for data binding (avoid JSON.stringify in HTML attributes)
 - Normalize song IDs to handle special characters (NFD normalization + sanitization)
+- Debug files (debug-output-*.txt, main-debug.js) are gitignored

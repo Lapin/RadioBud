@@ -27,3 +27,7 @@ notes/
 
 # API Keys
 .env
+
+# Debug files
+debug-output-*.txt
+main-debug.js

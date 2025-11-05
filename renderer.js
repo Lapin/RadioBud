@@ -441,10 +441,11 @@ function switchToTab(tab) {
     renderFavorites();
   }
   
-  setTimeout(() => {
-    const { ipcRenderer } = require('electron');
-    ipcRenderer.send('resize-window');
-  }, 100);
+  // Removed auto-resize on tab change to prevent window shrinking
+  // setTimeout(() => {
+  //   const { ipcRenderer } = require('electron');
+  //   ipcRenderer.send('resize-window');
+  // }, 100);
 }
 
 mainTabRadio.addEventListener('click', () => switchToTab('radio'));
@@ -724,27 +725,57 @@ volumeSlider.addEventListener('input', (e) => {
   }
 });
 
+function updatePlayButtonIcon() {
+  const playIcon = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+  const pauseIcon = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>`;
+  playBtn.innerHTML = isPlaying ? pauseIcon : playIcon;
+}
+
 playBtn.addEventListener('click', () => {
-  currentAudio.volume = 0;
-  currentAudio.play();
-  isPlaying = true;
-  playBtn.disabled = true;
-  stopBtn.disabled = false;
-  
-  const fadeSteps = 20;
-  const fadeInterval = 50;
-  let step = 0;
-  
-  const fadeInTimer = setInterval(() => {
-    step++;
-    const progress = step / fadeSteps;
-    currentAudio.volume = Math.min(masterVolume, progress * masterVolume);
+  if (isPlaying) {
+    // Stop playback
+    const fadeSteps = 10;
+    const fadeInterval = 50;
+    let step = 0;
     
-    if (step >= fadeSteps) {
-      clearInterval(fadeInTimer);
-      currentAudio.volume = masterVolume;
-    }
-  }, fadeInterval);
+    const fadeOutTimer = setInterval(() => {
+      step++;
+      const progress = step / fadeSteps;
+      currentAudio.volume = Math.max(0, masterVolume * (1 - progress));
+      
+      if (step >= fadeSteps) {
+        clearInterval(fadeOutTimer);
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio.volume = masterVolume;
+        isPlaying = false;
+        updatePlayButtonIcon();
+      }
+    }, fadeInterval);
+  } else {
+    // Start playback - reload stream to get live feed
+    currentAudio.src = stations[currentStation];
+    currentAudio.load();
+    currentAudio.volume = 0;
+    currentAudio.play();
+    isPlaying = true;
+    updatePlayButtonIcon();
+    
+    const fadeSteps = 20;
+    const fadeInterval = 50;
+    let step = 0;
+    
+    const fadeInTimer = setInterval(() => {
+      step++;
+      const progress = step / fadeSteps;
+      currentAudio.volume = Math.min(masterVolume, progress * masterVolume);
+      
+      if (step >= fadeSteps) {
+        clearInterval(fadeInTimer);
+        currentAudio.volume = masterVolume;
+      }
+    }, fadeInterval);
+  }
 });
 
 stopBtn.addEventListener('click', () => {
@@ -763,11 +794,13 @@ stopBtn.addEventListener('click', () => {
       currentAudio.currentTime = 0;
       currentAudio.volume = masterVolume;
       isPlaying = false;
-      playBtn.disabled = false;
-      stopBtn.disabled = true;
+      updatePlayButtonIcon();
     }
   }, fadeInterval);
 });
+
+// Initialize button icon on load
+updatePlayButtonIcon();
 
 async function switchStation(newStation) {
   currentStation = newStation;
@@ -844,8 +877,7 @@ function handleAudioError(audio, e, isCurrentAudio = true) {
   if (audioErrorCount > MAX_ERROR_RETRIES) {
     console.error('Too many audio errors, stopping playback');
     isPlaying = false;
-    playBtn.disabled = false;
-    stopBtn.disabled = true;
+    updatePlayButtonIcon();
     nowPlaying.textContent = 'Playback failed - too many errors';
     audioErrorCount = 0;
     return;
@@ -865,8 +897,7 @@ function handleAudioError(audio, e, isCurrentAudio = true) {
     }, ERROR_RETRY_DELAY);
   } else {
     isPlaying = false;
-    playBtn.disabled = false;
-    stopBtn.disabled = true;
+    updatePlayButtonIcon();
   }
 }
 
@@ -1013,8 +1044,7 @@ async function handleAudioDeviceChange() {
         currentAudio.currentTime = 0;
         currentAudio.volume = masterVolume;
         isPlaying = false;
-        playBtn.disabled = false;
-        stopBtn.disabled = true;
+        updatePlayButtonIcon();
       } else {
         console.log('New audio device added, continuing playback');
       }
