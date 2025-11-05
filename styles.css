@@ -41,7 +41,7 @@ body {
   align-items: center;
   position: relative;
   margin-bottom: 20px;
-  -webkit-app-region: drag;
+  -webkit-app-region: no-drag;
   padding-top: 6px;
 }
 
@@ -50,6 +50,9 @@ body {
   font-weight: 600;
   color: #000000;
   letter-spacing: -0.08px;
+  -webkit-app-region: drag;
+  padding: 10px 20px;
+  cursor: move;
 }
 
 .settings-btn {
@@ -94,6 +97,7 @@ body {
   cursor: pointer;
   transition: all 0.12s ease-out;
   position: relative;
+  -webkit-app-region: no-drag;
 }
 
 .segment-btn.active {
