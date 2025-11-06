@@ -407,9 +407,9 @@ fetchNowPlaying();
 const starBtn = document.getElementById('starBtn');
 const historyContent = document.getElementById('historyContent');
 const favoritesContent = document.getElementById('favoritesContent');
-const mainTabRadio = document.getElementById('mainTabRadio');
-const mainTabHistory = document.getElementById('mainTabHistory');
-const mainTabFavorites = document.getElementById('mainTabFavorites');
+const mainTabRadio = document.getElementById('tabRadio');
+const mainTabHistory = document.getElementById('tabHistory');
+const mainTabFavorites = document.getElementById('tabFavorites');
 const radioView = document.getElementById('radioView');
 const historyView = document.getElementById('historyView');
 const favoritesView = document.getElementById('favoritesView');
@@ -424,28 +424,22 @@ function switchToTab(tab) {
   mainTabRadio.classList.remove('active');
   mainTabHistory.classList.remove('active');
   mainTabFavorites.classList.remove('active');
-  radioView.classList.add('hidden');
-  historyView.classList.add('hidden');
-  favoritesView.classList.add('hidden');
+  radioView.classList.remove('active');
+  historyView.classList.remove('active');
+  favoritesView.classList.remove('active');
   
   if (tab === 'radio') {
     mainTabRadio.classList.add('active');
-    radioView.classList.remove('hidden');
+    radioView.classList.add('active');
   } else if (tab === 'history') {
     mainTabHistory.classList.add('active');
-    historyView.classList.remove('hidden');
+    historyView.classList.add('active');
     renderHistory();
   } else if (tab === 'favorites') {
     mainTabFavorites.classList.add('active');
-    favoritesView.classList.remove('hidden');
+    favoritesView.classList.add('active');
     renderFavorites();
   }
-  
-  // Removed auto-resize on tab change to prevent window shrinking
-  // setTimeout(() => {
-  //   const { ipcRenderer } = require('electron');
-  //   ipcRenderer.send('resize-window');
-  // }, 100);
 }
 
 mainTabRadio.addEventListener('click', () => switchToTab('radio'));
@@ -1062,4 +1056,46 @@ if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
   });
 } else {
   console.warn('MediaDevices API not available');
+}
+
+// Donation link handlers
+const somaLink = document.getElementById('somaLink');
+const ntsLink = document.getElementById('ntsLink');
+
+if (somaLink) {
+  somaLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    shell.openExternal('https://somafm.com/support/');
+  });
+}
+
+if (ntsLink) {
+  ntsLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    shell.openExternal('https://www.nts.live/supporters');
+  });
+}
+
+// Theme Toggle
+const themeToggle = document.getElementById('themeToggle');
+let currentTheme = localStorage.getItem('theme') || 'light';
+
+function setTheme(theme) {
+  currentTheme = theme;
+  if (theme === 'dark') {
+    document.body.classList.add('dark');
+  } else {
+    document.body.classList.remove('dark');
+  }
+  localStorage.setItem('theme', theme);
+}
+
+// Initialize theme on load
+setTheme(currentTheme);
+
+if (themeToggle) {
+  themeToggle.addEventListener('click', () => {
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+  });
 }
