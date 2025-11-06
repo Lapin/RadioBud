@@ -407,9 +407,9 @@ fetchNowPlaying();
 const starBtn = document.getElementById('starBtn');
 const historyContent = document.getElementById('historyContent');
 const favoritesContent = document.getElementById('favoritesContent');
-const mainTabRadio = document.getElementById('mainTabRadio');
-const mainTabHistory = document.getElementById('mainTabHistory');
-const mainTabFavorites = document.getElementById('mainTabFavorites');
+const mainTabRadio = document.getElementById('tabRadio');
+const mainTabHistory = document.getElementById('tabHistory');
+const mainTabFavorites = document.getElementById('tabFavorites');
 const radioView = document.getElementById('radioView');
 const historyView = document.getElementById('historyView');
 const favoritesView = document.getElementById('favoritesView');
@@ -424,28 +424,22 @@ function switchToTab(tab) {
   mainTabRadio.classList.remove('active');
   mainTabHistory.classList.remove('active');
   mainTabFavorites.classList.remove('active');
-  radioView.classList.add('hidden');
-  historyView.classList.add('hidden');
-  favoritesView.classList.add('hidden');
+  radioView.classList.remove('active');
+  historyView.classList.remove('active');
+  favoritesView.classList.remove('active');
   
   if (tab === 'radio') {
     mainTabRadio.classList.add('active');
-    radioView.classList.remove('hidden');
+    radioView.classList.add('active');
   } else if (tab === 'history') {
     mainTabHistory.classList.add('active');
-    historyView.classList.remove('hidden');
+    historyView.classList.add('active');
     renderHistory();
   } else if (tab === 'favorites') {
     mainTabFavorites.classList.add('active');
-    favoritesView.classList.remove('hidden');
+    favoritesView.classList.add('active');
     renderFavorites();
   }
-  
-  // Removed auto-resize on tab change to prevent window shrinking
-  // setTimeout(() => {
-  //   const { ipcRenderer } = require('electron');
-  //   ipcRenderer.send('resize-window');
-  // }, 100);
 }
 
 mainTabRadio.addEventListener('click', () => switchToTab('radio'));
@@ -1082,25 +1076,16 @@ if (ntsLink) {
   });
 }
 
-// Settings button placeholder
-const settingsBtn = document.getElementById('settingsBtn');
-// Theme Toggle with Debug
-console.log('Theme toggle script loading...');
+// Theme Toggle
 const themeToggle = document.getElementById('themeToggle');
-console.log('Theme toggle button:', themeToggle);
-
 let currentTheme = localStorage.getItem('theme') || 'light';
-console.log('Current theme from localStorage:', currentTheme);
 
 function setTheme(theme) {
-  console.log('Setting theme to:', theme);
   currentTheme = theme;
   if (theme === 'dark') {
-    document.body.classList.add('dark-theme');
-    console.log('Added dark-theme class');
+    document.body.classList.add('dark');
   } else {
-    document.body.classList.remove('dark-theme');
-    console.log('Removed dark-theme class');
+    document.body.classList.remove('dark');
   }
   localStorage.setItem('theme', theme);
 }
@@ -1109,15 +1094,8 @@ function setTheme(theme) {
 setTheme(currentTheme);
 
 if (themeToggle) {
-  console.log('Adding click listener to theme toggle');
-  themeToggle.addEventListener('click', (e) => {
-    console.log('Theme toggle clicked!');
-    e.preventDefault();
-    e.stopPropagation();
+  themeToggle.addEventListener('click', () => {
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-    console.log('Switching from', currentTheme, 'to', newTheme);
     setTheme(newTheme);
   });
-} else {
-  console.error('Theme toggle button not found!');
 }

@@ -4,6 +4,38 @@ All notable changes to RadioBud will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-11-06
+
+### Changed
+- **Complete front-end rewrite** - Rebuilt HTML and CSS from scratch for improved stability
+- Simplified drag region implementation (titlebar only, no body-level conflicts)
+- Updated theme toggle class from `dark-theme` to `dark` for consistency
+- Refactored tab switching to use `active` class instead of `hidden` class
+- Cleaned up JavaScript event listeners and removed debug logging
+
+### Added
+- **macOS Glass UI** - Native Big Sur/Ventura glass morphism design with backdrop blur
+- **Dark theme support** - Full dark mode with system-native colors and automatic icon switching
+- Theme toggle button (sun/moon icon) in titlebar
+- Native macOS color palette (tomato red accent #FF6347, system grays)
+- Refined typography with SF Pro font and proper letter-spacing
+- Smooth transitions (0.15s ease) throughout UI
+- 3D button effects with gradients and hover states
+
+### Fixed
+- **Fixed all clickability issues** - Buttons, tabs, and controls now respond properly
+- Fixed theme toggle not working (drag region was blocking clicks)
+- Fixed tab switching conflicts with new class-based system
+- Fixed window dragging conflicts with interactive elements
+- Resolved webkit-app-region conflicts throughout the application
+
+### Technical
+- Removed `-webkit-app-region: drag` from body element
+- Applied drag region only to `.titlebar` element
+- All interactive elements explicitly set to `-webkit-app-region: no-drag`
+- Tab content uses `.active` class instead of `.hidden` for visibility control
+- Simplified CSS architecture with clear separation of concerns
+
 ## [0.2.1] - 2025-10-28
 
 ### Fixed
