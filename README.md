@@ -6,8 +6,6 @@ A beautiful desktop radio app for streaming 36+ SomaFM stations with smooth cros
 
 ## Features
 
-- **macOS Glass UI** - Native Big Sur/Ventura glass morphism design with backdrop blur
-- **Dark Theme** - Full dark mode support with automatic icon switching
 - Stream 36 SomaFM radio stations
 - Smooth audio cross-fading (1000ms transitions)
 - Real-time track information with iTunes metadata (album, year, genre)
@@ -17,8 +15,6 @@ A beautiful desktop radio app for streaming 36+ SomaFM stations with smooth cros
 - Auto-stop playback when audio device changes
 - Tabbed interface (Radio, History, Favorites)
 - Service links: Last.fm, Bandcamp, YouTube search
-- Native macOS window controls
-- Dynamic window sizing
 
 ## Installation
 
