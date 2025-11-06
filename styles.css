@@ -157,6 +157,7 @@ body {
   color: #000;
   cursor: pointer;
   transition: all 0.15s ease;
+  -webkit-app-region: no-drag;
 }
 
 .selector select:hover {
@@ -176,6 +177,39 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
   padding: 16px;
+  position: relative;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.donation-card.hidden {
+  display: none;
+}
+
+.dismiss-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  transition: all 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+
+.dismiss-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #000;
+}
+
+.dismiss-btn:active {
+  transform: scale(0.9);
 }
 
 .donation-card h3 {
@@ -207,6 +241,8 @@ body {
   padding: 6px 8px;
   border-radius: 5px;
   transition: all 0.15s ease;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
 }
 
 .donation-link:hover {
@@ -369,9 +405,11 @@ body {
 }
 
 .no-art {
-  font-size: 10px;
+  font-size: 9px;
   color: #999;
   text-align: center;
+  white-space: nowrap;
+  padding: 0 4px;
 }
 
 /* Song Info */
@@ -547,6 +585,15 @@ body.dark .donation-card {
 
 body.dark .donation-card p {
   color: #999;
+}
+
+body.dark .dismiss-btn {
+  color: #666;
+}
+
+body.dark .dismiss-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
 
 body.dark .history-item {

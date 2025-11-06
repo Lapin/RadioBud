@@ -88,7 +88,6 @@ let favorites = [];
 let currentSong = null;
 
 const playBtn = document.getElementById('playBtn');
-const stopBtn = document.getElementById('stopBtn');
 const stationSelect = document.getElementById('stationSelect');
 const nowPlaying = document.getElementById('nowPlaying');
 const volumeSlider = document.getElementById('volumeSlider');
@@ -772,27 +771,6 @@ playBtn.addEventListener('click', () => {
   }
 });
 
-stopBtn.addEventListener('click', () => {
-  const fadeSteps = 10;
-  const fadeInterval = 50;
-  let step = 0;
-  
-  const fadeOutTimer = setInterval(() => {
-    step++;
-    const progress = step / fadeSteps;
-    currentAudio.volume = Math.max(0, masterVolume * (1 - progress));
-    
-    if (step >= fadeSteps) {
-      clearInterval(fadeOutTimer);
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-      currentAudio.volume = masterVolume;
-      isPlaying = false;
-      updatePlayButtonIcon();
-    }
-  }, fadeInterval);
-});
-
 // Initialize button icon on load
 updatePlayButtonIcon();
 
@@ -1061,11 +1039,13 @@ if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
 // Donation link handlers
 const somaLink = document.getElementById('somaLink');
 const ntsLink = document.getElementById('ntsLink');
+const dismissDonationBtn = document.getElementById('dismissDonationBtn');
+const donationCard = document.getElementById('donationCard');
 
 if (somaLink) {
   somaLink.addEventListener('click', (e) => {
     e.preventDefault();
-    shell.openExternal('https://somafm.com/support/');
+    shell.openExternal('https://somafm.com/support/donate.html');
   });
 }
 
@@ -1073,6 +1053,13 @@ if (ntsLink) {
   ntsLink.addEventListener('click', (e) => {
     e.preventDefault();
     shell.openExternal('https://www.nts.live/supporters');
+  });
+}
+
+// Dismiss donation card for this session only
+if (dismissDonationBtn && donationCard) {
+  dismissDonationBtn.addEventListener('click', () => {
+    donationCard.classList.add('hidden');
   });
 }
 

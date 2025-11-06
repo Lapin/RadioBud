@@ -12,11 +12,13 @@ All notable changes to RadioBud will be documented in this file.
 - Updated theme toggle class from `dark-theme` to `dark` for consistency
 - Refactored tab switching to use `active` class instead of `hidden` class
 - Cleaned up JavaScript event listeners and removed debug logging
+- Updated donation links to correct URLs (SomaFM and NTS Radio)
 
 ### Added
 - **macOS Glass UI** - Native Big Sur/Ventura glass morphism design with backdrop blur
 - **Dark theme support** - Full dark mode with system-native colors and automatic icon switching
 - Theme toggle button (sun/moon icon) in titlebar
+- Dismiss button for donation card (session-only, reappears on app restart)
 - Native macOS color palette (tomato red accent #FF6347, system grays)
 - Refined typography with SF Pro font and proper letter-spacing
 - Smooth transitions (0.15s ease) throughout UI
@@ -25,6 +27,11 @@ All notable changes to RadioBud will be documented in this file.
 ### Fixed
 - **Fixed all clickability issues** - Buttons, tabs, and controls now respond properly
 - Fixed theme toggle not working (drag region was blocking clicks)
+- Fixed donation links not opening in browser (added `-webkit-app-region: no-drag`)
+- Fixed dismiss button not working (added `-webkit-app-region: no-drag`)
+- Fixed station dropdown not changing stations (added `-webkit-app-region: no-drag`)
+- Fixed "No Artwork" text wrapping in album art display
+- Fixed console error with missing `stopBtn` element (removed obsolete stop button code)
 - Fixed tab switching conflicts with new class-based system
 - Fixed window dragging conflicts with interactive elements
 - Resolved webkit-app-region conflicts throughout the application
@@ -35,6 +42,8 @@ All notable changes to RadioBud will be documented in this file.
 - All interactive elements explicitly set to `-webkit-app-region: no-drag`
 - Tab content uses `.active` class instead of `.hidden` for visibility control
 - Simplified CSS architecture with clear separation of concerns
+- Removed obsolete stop button event listener code
+- Fixed donation URLs: `https://somafm.com/support/donate.html` and `https://www.nts.live/supporters`
 
 ## [0.2.1] - 2025-10-28
 
