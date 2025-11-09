@@ -1,7 +1,7 @@
 {
   "name": "radiobud",
-  "version": "0.2.0",
-  "description": "A minimal radio app for streaming SomaFM",
+  "version": "0.4.1",
+  "description": "A desktop radio app for streaming SomaFM and NTS Radio",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -22,8 +22,10 @@
   "build": {
     "appId": "com.radiobud.app",
     "productName": "RadioBud",
+    "icon": "build/icon.png",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "files": [
       "main.js",
@@ -32,22 +34,26 @@
       "splash.html",
       "styles.css",
       "splash.css",
-      "package.json"
+      "package.json",
+      "providers/**/*"
     ],
     "npmRebuild": false,
     "mac": {
       "category": "public.app-category.music",
+      "icon": "build/icon.icns",
       "target": [
         "dir"
       ]
     },
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         "nsis",
         "portable"
       ]
     },
     "linux": {
+      "icon": "build/icon.png",
       "target": [
         "AppImage",
         "deb"
