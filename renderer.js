@@ -209,13 +209,7 @@ function updateAlbumArt(artUrl) {
     albumArtEl.innerHTML = '<span class="no-artwork">No Artwork</span>';
   }
   
-  albumArtEl.onclick = () => {
-    if (currentSong) {
-      openExpandedView(artUrl);
-    } else {
-      console.warn('No song currently playing');
-    }
-  };
+  // Removed expanded view feature - click handler removed
 }
 
 function generateServiceLinks(artist, title) {
@@ -393,140 +387,9 @@ mainTabRadio.addEventListener('click', () => switchToTab('radio'));
 mainTabHistory.addEventListener('click', () => switchToTab('history'));
 mainTabFavorites.addEventListener('click', () => switchToTab('favorites'));
 
-function openExpandedView(artUrl) {
-  if (!currentSong) {
-    console.error('No current song available');
-    return;
-  }
-  
-  console.log('Opening expanded view for:', currentSong.artist, '-', currentSong.title);
-  
-  const overlay = document.createElement('div');
-  overlay.className = 'expanded-overlay';
-  overlay.id = 'expandedOverlay';
-  
-  const container = document.createElement('div');
-  container.className = 'expanded-container';
-  
-  let artElement;
-  if (artUrl) {
-    artElement = document.createElement('img');
-    artElement.src = artUrl;
-    artElement.className = 'expanded-art';
-  } else {
-    artElement = document.createElement('div');
-    artElement.className = 'expanded-art expanded-no-art';
-    artElement.innerHTML = '<span class="no-artwork-expanded">No Artwork</span>';
-  }
-  
-  const infoRow = document.createElement('div');
-  infoRow.className = 'expanded-info-row';
-  infoRow.innerHTML = `
-    <div class="expanded-song">${currentSong.artist} - ${currentSong.title}</div>
-    <button class="expanded-star" id="expandedStar">${isFavorited(currentSong) ? '★' : '☆'}</button>
-  `;
-  
-  const controlsRow = document.createElement('div');
-  controlsRow.className = 'expanded-controls-row';
-  controlsRow.innerHTML = `
-    <button class="expanded-btn" id="expandedPlay">▶</button>
-    <button class="expanded-btn" id="expandedStop">■</button>
-  `;
-  
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'expanded-close';
-  closeBtn.innerHTML = '×';
-  
-  container.appendChild(artElement);
-  container.appendChild(infoRow);
-  container.appendChild(controlsRow);
-  
-  overlay.appendChild(container);
-  overlay.appendChild(closeBtn);
-  
-  overlay.style.background = 'rgba(0, 0, 0, 0.95)';
-  
-  if (artUrl && artElement.tagName === 'IMG') {
-    artElement.onload = () => {
-      const tempCanvas = document.createElement('canvas');
-      const ctx = tempCanvas.getContext('2d');
-      tempCanvas.width = artElement.naturalWidth;
-      tempCanvas.height = artElement.naturalHeight;
-      
-      try {
-        ctx.drawImage(artElement, 0, 0);
-        const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-        const data = imageData.data;
-        
-        let r = 0, g = 0, b = 0;
-        const sampleSize = 10;
-        let count = 0;
-        
-        for (let i = 0; i < data.length; i += 4 * sampleSize) {
-          r += data[i];
-          g += data[i + 1];
-          b += data[i + 2];
-          count++;
-        }
-        
-        r = Math.floor(r / count);
-        g = Math.floor(g / count);
-        b = Math.floor(b / count);
-        
-        overlay.style.background = `
-          linear-gradient(
-            135deg,
-            rgba(${r}, ${g}, ${b}, 0.95) 0%,
-            rgba(${Math.floor(r * 0.5)}, ${Math.floor(g * 0.5)}, ${Math.floor(b * 0.5)}, 0.98) 100%
-          )
-        `;
-      } catch (error) {
-        console.error('Error extracting color:', error);
-      }
-    };
-  }
-  
-  const closeExpanded = () => {
-    overlay.classList.add('expanded-closing');
-    setTimeout(() => overlay.remove(), 200);
-  };
-  
-  closeBtn.onclick = closeExpanded;
-  overlay.onclick = (e) => {
-    if (e.target === overlay) closeExpanded();
-  };
-  
-  document.addEventListener('keydown', function escHandler(e) {
-    if (e.key === 'Escape') {
-      closeExpanded();
-      document.removeEventListener('keydown', escHandler);
-    }
-  });
-  
-  document.body.appendChild(overlay);
-  
-  overlay.querySelector('#expandedStar').onclick = (e) => {
-    e.stopPropagation();
-    toggleFavorite(currentSong);
-    e.target.textContent = isFavorited(currentSong) ? '★' : '☆';
-  };
-  
-  overlay.querySelector('#expandedPlay').onclick = (e) => {
-    e.stopPropagation();
-    if (!isPlaying) {
-      playBtn.click();
-    }
-  };
-  
-  overlay.querySelector('#expandedStop').onclick = (e) => {
-    e.stopPropagation();
-    if (isPlaying) {
-      stopBtn.click();
-    }
-  };
-  
-  setTimeout(() => overlay.classList.add('expanded-visible'), 10);
-}
+
+// Expanded view feature removed
+
 
 function formatTime(timestamp) {
   const now = new Date();
@@ -792,16 +655,35 @@ if (radioSelect) {
     const newProvider = e.target.value;
     if (newProvider !== currentProvider) {
       if (isPlaying) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
-        currentAudio.volume = masterVolume;
-        isPlaying = false;
-        updatePlayButtonIcon();
+        // Fade out current audio before switching provider
+        const fadeSteps = 10;
+        const fadeInterval = 50;
+        let step = 0;
+        
+        const fadeOutTimer = setInterval(() => {
+          step++;
+          const progress = step / fadeSteps;
+          currentAudio.volume = Math.max(0, masterVolume * (1 - progress));
+          
+          if (step >= fadeSteps) {
+            clearInterval(fadeOutTimer);
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            currentAudio.volume = masterVolume;
+            isPlaying = false;
+            updatePlayButtonIcon();
+            
+            // Now switch provider
+            currentProvider = newProvider;
+            populateStationDropdown();
+            fetchNowPlaying();
+          }
+        }, fadeInterval);
+      } else {
+        currentProvider = newProvider;
+        populateStationDropdown();
+        fetchNowPlaying();
       }
-      
-      currentProvider = newProvider;
-      populateStationDropdown();
-      fetchNowPlaying();
     }
   });
 }

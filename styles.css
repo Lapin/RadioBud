@@ -308,6 +308,37 @@ body {
 .history-item-meta {
   font-size: 11px;
   color: #666;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.history-item-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.history-service-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+}
+
+.history-service-icon:hover {
+  opacity: 1;
+}
+
+.history-service-icon svg {
+  display: block;
 }
 
 .history-item-star {
