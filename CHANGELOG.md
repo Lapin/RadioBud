@@ -4,6 +4,53 @@ All notable changes to RadioBud will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-11-06
+
+### Added
+- **NTS Radio Integration** - Added 18 new radio streams from NTS Radio (www.nts.live)
+  - 2 live channels: NTS 1 and NTS 2 with live show information
+  - 16 themed Infinite Mixtapes (continuous music streams):
+    - Poolside (Balearic, boogie), Slow Focus (Ambient, drone)
+    - Low Key (Lo-fi hip-hop), Memory Lane (Psychedelic)
+    - 4 To The Floor (House/techno), Island Time (Reggae, dub)
+    - The Tube (Post-punk), Sheet Music (Classical)
+    - Feelings (Soul, gospel), Expansions (Jazz)
+    - Rap House (808s), Labyrinth (Experimental)
+    - Sweat (Party music), Otaku (Anime/game OSTs)
+    - The Pit (Metal), Field Recordings (Ambience)
+- **Multi-Provider Architecture** - Refactored codebase to support multiple radio providers
+  - Provider pattern with base interface (`providers/base.js`)
+  - SomaFM provider (`providers/somafm.js`) - 36 stations, track-based metadata
+  - NTS provider (`providers/nts.js`) - 18 streams, show-based metadata
+- **Dynamic Station Dropdown** - Station list updates based on selected radio provider
+- **Radio Selector** - New dropdown to switch between SomaFM and NTS Radio
+- **Show-Based Metadata Support** - Handles both track-based (SomaFM) and show-based (NTS) content
+  - NTS shows display host name, show title, location, and genres
+  - Native high-quality artwork from NTS API (256kbps MP3 streams)
+- **Enhanced History Tracking** - History entries now include provider and content type (track/show)
+
+### Changed
+- Refactored `renderer.js` to use provider-based architecture
+- Station dropdown now populated dynamically from selected provider
+- History tracking adapted to handle both songs (SomaFM) and shows (NTS)
+  - SomaFM: Logs on track change (every ~3 minutes)
+  - NTS: Logs on show change (every ~2 hours) to prevent spam
+- Cross-fade logic now supports provider switching with graceful stop/start
+
+### Fixed
+- **NTS Infinite Mixtape URLs** - Corrected non-sequential mixtape numbers
+  - Fixed 404 errors on 11 mixtapes (Island Time, The Tube, Sheet Music, etc.)
+  - Updated to actual NTS API mixtape numbering (mixtape21, mixtape26, etc.)
+
+### Technical
+- Created `providers/` directory with modular provider system
+- NTS API integration: `https://www.nts.live/api/v2/live`
+- NTS streams: 256kbps MP3 (higher quality than SomaFM's 128kbps)
+- Provider metadata types: 'track' (SomaFM) vs 'show' (NTS)
+- Show change detection to prevent history spam with long broadcasts
+- Cross-provider audio switching with dual audio element system preserved
+- Total stations available: 54 (36 SomaFM + 18 NTS)
+
 ## [0.3.0] - 2025-11-06
 
 ### Changed
