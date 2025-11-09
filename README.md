@@ -1,16 +1,23 @@
 # RadioBud
 
-A beautiful desktop radio app for streaming 36+ SomaFM stations with smooth cross-fading transitions and native macOS glass UI.
+A beautiful desktop radio app for streaming 54+ radio stations (36 SomaFM + 18 NTS Radio) with smooth cross-fading transitions and native macOS glass UI.
 
 ![RadioBud Screenshot](Screenshot.jpg)
 
 ## Features
 
-- Stream 36 SomaFM radio stations
+- **Multi-Provider Support**: Switch between SomaFM and NTS Radio
+- **54 Radio Streams**:
+  - 36 SomaFM stations with track-based metadata
+  - 2 NTS live channels with show information
+  - 16 NTS Infinite Mixtapes (curated continuous streams)
 - Smooth audio cross-fading (1000ms transitions)
-- Real-time track information with iTunes metadata (album, year, genre)
-- Album artwork with expandable view (works even without artwork)
-- Song history tracking (last 100 songs)
+- Real-time metadata:
+  - SomaFM: Track info with iTunes metadata (album, year, genre)
+  - NTS Live: Show title, host, location, genres
+  - NTS Mixtapes: Station name and theme
+- Album artwork with automatic fallback
+- Song/show history tracking (last 100 items)
 - Favorites system with album art and service links
 - Auto-stop playback when audio device changes
 - Tabbed interface (Radio, History, Favorites)
@@ -60,11 +67,11 @@ Built apps will be in the `dist/` folder.
 
 ## Usage
 
-- **Select Station**: Choose from 36 SomaFM stations in dropdown
+- **Select Provider**: Choose between SomaFM or NTS Radio
+- **Select Station**: Pick from 36 SomaFM stations or 18 NTS streams
 - **Play/Stop**: Control playback with buttons
 - **Volume**: Adjust with slider (0-100%)
-- **Album Art**: Click to view expanded view with color-extracted gradient
-- **Star Button**: Add current song to favorites
+- **Star Button**: Add current song/show to favorites
 - **Tabs**: Switch between Radio, History, and Favorites
 - **Service Links**: Quick access to Last.fm, Bandcamp, and YouTube for each track
 - **Device Changes**: Playback automatically stops when switching audio outputs
@@ -73,17 +80,20 @@ Built apps will be in the `dist/` folder.
 
 RadioBud fetches album artwork automatically using a cascading fallback system:
 
-1. **Primary**: iTunes Search API (no API key required)
-2. **Fallback**: Last.fm API (uses public demo key, free & safe)
-3. **Final**: "No Artwork" placeholder
+1. **NTS Radio**: Native high-quality artwork from NTS API
+2. **SomaFM**: iTunes Search API (no API key required)
+3. **Fallback**: Last.fm API (uses public demo key, free & safe)
+4. **Final**: "No Artwork" placeholder
 
-> **Note**: The app works completely out of the box with no API key configuration needed. Album artwork is provided for free through iTunes and Last.fm public APIs.
+> **Note**: The app works completely out of the box with no API key configuration needed. Album artwork is provided for free through NTS, iTunes, and Last.fm public APIs.
 
 ## Tech Stack
 
 - Electron
 - HTML5 Audio API
-- SomaFM Streaming API
+- Multi-provider architecture (modular radio provider system)
+- **SomaFM**: 36 stations, track-based metadata API
+- **NTS Radio**: 18 streams (2 live + 16 mixtapes), show-based metadata API
 - iTunes Search API (album artwork - no auth required)
 - Last.fm API (album metadata fallback - free public key)
 

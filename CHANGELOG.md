@@ -4,6 +4,20 @@ All notable changes to RadioBud will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.1] - 2025-11-09
+
+### Fixed
+- **Service Links Alignment** - Fixed Last.fm, Bandcamp, and YouTube icons wrapping to next line in favorites list
+  - Added proper CSS for inline alignment of service icons
+  - Service links now display inline with metadata
+- **Provider Switching** - Added 500ms fade-out when switching between SomaFM and NTS Radio
+  - Smooth audio transition instead of abrupt stop
+
+### Removed
+- **Expanded Album Art View** - Removed non-functional expanded view feature
+  - Disabled click handler on album art thumbnail
+  - Removed 133 lines of unused overlay code
+
 ## [0.4.0] - 2025-11-06
 
 ### Added
