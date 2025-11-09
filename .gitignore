@@ -16,7 +16,9 @@ Thumbs.db
 
 # Build output
 dist/
-build/
+build/*.png
+build/*.icns
+build/*.ico
 
 # Environment variables
 .env
