@@ -981,6 +981,9 @@ window.butterchurnPresets = butterchurnPresets;
 
 console.log('Butterchurn object:', butterchurn);
 console.log('Butterchurn keys:', Object.keys(butterchurn));
+console.log('Butterchurn keys list:', Object.keys(butterchurn));
+if (butterchurn.default) console.log('butterchurn.default:', butterchurn.default);
+if (butterchurn.default && butterchurn.default.createVisualizer) console.log('Has default.createVisualizer:', typeof butterchurn.default.createVisualizer);
 console.log('Has createVisualizer:', typeof butterchurn.createVisualizer);
 console.log('window.butterchurn:', window.butterchurn);
 
@@ -1032,7 +1035,7 @@ function openVisualizer() {
   // Create butterchurn visualizer instance
   try {
     // Butterchurn expects window.butterchurn with static createVisualizer method
-    const bc = window.butterchurn || butterchurn;
+    const bc = (window.butterchurn && window.butterchurn.default) || butterchurn.default || butterchurn;
     
     visualizer = bc.createVisualizer(audioContext, canvas, {
       width: canvas.width,
