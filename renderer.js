@@ -992,6 +992,9 @@ let visualizerActive = false;
 let currentPresetIndex = 0;
 let presets = [];
 let animationFrameId = null;
+let targetFPS = 24; // Default to 24 FPS
+let lastFrameTime = 0;
+let frameInterval = 1000 / 24; // ~41.67ms for 24 FPS
 
 // Initialize presets
 function initializePresets() {
@@ -1082,11 +1085,21 @@ function loadPreset(index) {
   console.log('Loaded preset:', preset.name);
 }
 
-function renderVisualizer() {
+function renderVisualizer(currentTime) {
   if (!visualizerActive || !visualizer) return;
   
-  visualizer.render();
   animationFrameId = requestAnimationFrame(renderVisualizer);
+  
+  // Calculate time since last frame
+  const elapsed = currentTime - lastFrameTime;
+  
+  // Only render if enough time has passed for target FPS
+  if (elapsed >= frameInterval) {
+    // Adjust for any drift
+    lastFrameTime = currentTime - (elapsed % frameInterval);
+    
+    visualizer.render();
+  }
 }
 
 function closeVisualizer() {
@@ -1124,6 +1137,23 @@ document.getElementById('nextPreset').addEventListener('click', () => {
   const newIndex = (currentPresetIndex + 1) % presets.length;
   loadPreset(newIndex);
 });
+
+// FPS control buttons
+function setFPS(fps) {
+  targetFPS = fps;
+  frameInterval = 1000 / fps;
+  lastFrameTime = 0; // Reset timing
+  
+  // Update button states
+  document.querySelectorAll('.fps-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(`fps${fps}`).classList.add('active');
+  
+  console.log(`Visualizer FPS set to ${fps}`);
+}
+
+document.getElementById('fps24').addEventListener('click', () => setFPS(24));
+document.getElementById('fps30').addEventListener('click', () => setFPS(30));
+document.getElementById('fps60').addEventListener('click', () => setFPS(60));
 
 // ESC key to close
 document.addEventListener('keydown', (e) => {
