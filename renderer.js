@@ -18,6 +18,8 @@ let masterVolume = 1.0;
 let playHistory = [];
 let favorites = [];
 let currentSong = null;
+let audioContext = null;
+let mediaElementSource = null;
 
 const playBtn = document.getElementById('playBtn');
 const stationSelect = document.getElementById('stationSelect');
@@ -209,7 +211,13 @@ function updateAlbumArt(artUrl) {
     albumArtEl.innerHTML = '<span class="no-artwork">No Artwork</span>';
   }
   
-  // Removed expanded view feature - click handler removed
+  // Add click handler to open visualizer
+  albumArtEl.onclick = () => {
+    if (isPlaying) {
+      openVisualizer();
+    }
+  };
+  albumArtEl.style.cursor = isPlaying ? 'pointer' : 'default';
 }
 
 function generateServiceLinks(artist, title) {
@@ -962,3 +970,142 @@ if (themeToggle) {
     setTheme(newTheme);
   });
 }
+
+// Butterchurn Visualizer Integration
+const butterchurn = require('butterchurn');
+const butterchurnPresets = require('butterchurn-presets');
+
+let visualizer = null;
+let visualizerActive = false;
+let currentPresetIndex = 0;
+let presets = [];
+let animationFrameId = null;
+
+// Initialize presets
+function initializePresets() {
+  const allPresets = butterchurnPresets.getPresets();
+  presets = Object.keys(allPresets).map(name => ({
+    name: name,
+    preset: allPresets[name]
+  }));
+  console.log('Loaded', presets.length, 'butterchurn presets');
+}
+
+function openVisualizer() {
+  if (!isPlaying) {
+    console.warn('Cannot open visualizer: no audio playing');
+    return;
+  }
+  
+  const overlay = document.getElementById('visualizerOverlay');
+  const canvas = document.getElementById('visualizerCanvas');
+  const songInfo = document.getElementById('visualizerSongInfo');
+  
+  // Show overlay
+  overlay.style.display = 'flex';
+  visualizerActive = true;
+  
+  // Set canvas size to window size
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  
+  // Create butterchurn instance
+  visualizer = butterchurn.createVisualizer(audioContext, canvas, {
+    width: canvas.width,
+    height: canvas.height,
+    pixelRatio: window.devicePixelRatio || 1,
+    textureRatio: 1
+  });
+  
+  // Connect audio if not already connected
+  if (!mediaElementSource) {
+    mediaElementSource = audioContext.createMediaElementSource(currentAudio);
+    mediaElementSource.connect(audioContext.destination);
+  }
+  
+  visualizer.connectAudio(mediaElementSource);
+  
+  // Load random preset
+  if (presets.length === 0) {
+    initializePresets();
+  }
+  currentPresetIndex = Math.floor(Math.random() * presets.length);
+  loadPreset(currentPresetIndex);
+  
+  // Update song info
+  if (currentSong) {
+    songInfo.textContent = `${currentSong.artist} - ${currentSong.title}`;
+  } else {
+    songInfo.textContent = 'RadioBud Visualizer';
+  }
+  
+  // Start render loop
+  renderVisualizer();
+}
+
+function loadPreset(index) {
+  if (index < 0 || index >= presets.length || !visualizer) return;
+  
+  currentPresetIndex = index;
+  const preset = presets[index];
+  visualizer.loadPreset(preset.preset, 0.0); // 0.0 = no transition
+  
+  document.getElementById('presetName').textContent = preset.name;
+  console.log('Loaded preset:', preset.name);
+}
+
+function renderVisualizer() {
+  if (!visualizerActive || !visualizer) return;
+  
+  visualizer.render();
+  animationFrameId = requestAnimationFrame(renderVisualizer);
+}
+
+function closeVisualizer() {
+  visualizerActive = false;
+  
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  
+  if (visualizer) {
+    visualizer.disconnectAudio(mediaElementSource);
+    visualizer = null;
+  }
+  
+  const overlay = document.getElementById('visualizerOverlay');
+  overlay.style.display = 'none';
+}
+
+// Event listeners for visualizer
+document.getElementById('closeVisualizer').addEventListener('click', closeVisualizer);
+
+document.getElementById('prevPreset').addEventListener('click', () => {
+  const newIndex = (currentPresetIndex - 1 + presets.length) % presets.length;
+  loadPreset(newIndex);
+});
+
+document.getElementById('nextPreset').addEventListener('click', () => {
+  const newIndex = (currentPresetIndex + 1) % presets.length;
+  loadPreset(newIndex);
+});
+
+// ESC key to close
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && visualizerActive) {
+    closeVisualizer();
+  }
+});
+
+// Handle window resize
+window.addEventListener('resize', () => {
+  if (visualizerActive && visualizer) {
+    const canvas = document.getElementById('visualizerCanvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    visualizer.setRendererSize(canvas.width, canvas.height);
+  }
+});
+
+console.log('Butterchurn visualizer initialized');

@@ -149,6 +149,20 @@
     </div>
   </div>
 
+  <!-- Butterchurn Visualizer Overlay -->
+  <div id="visualizerOverlay" class="visualizer-overlay" style="display: none;">
+    <canvas id="visualizerCanvas"></canvas>
+    <button id="closeVisualizer" class="close-visualizer">×</button>
+    <div class="visualizer-info">
+      <div id="visualizerSongInfo"></div>
+      <div class="visualizer-controls">
+        <button id="prevPreset" class="visualizer-btn">← Prev</button>
+        <span id="presetName" class="preset-name"></span>
+        <button id="nextPreset" class="visualizer-btn">Next →</button>
+      </div>
+    </div>
+  </div>
+
   <script src="renderer.js"></script>
 </body>
 </html>
