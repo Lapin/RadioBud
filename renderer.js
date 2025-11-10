@@ -995,6 +995,7 @@ let animationFrameId = null;
 let targetFPS = 24; // Default to 24 FPS
 let lastFrameTime = 0;
 let frameInterval = 1000 / 24; // ~41.67ms for 24 FPS
+let settingsPopoverOpen = false;
 
 // Initialize presets
 function initializePresets() {
@@ -1142,21 +1143,13 @@ document.getElementById('nextPreset').addEventListener('click', () => {
 });
 
 // FPS control buttons
+// FPS function moved inside attachSettingsListeners()
 function setFPS(fps) {
   targetFPS = fps;
   frameInterval = 1000 / fps;
   lastFrameTime = 0; // Reset timing
-  
-  // Update button states
-  document.querySelectorAll('.fps-btn').forEach(btn => btn.classList.remove('active'));
-  document.getElementById(`fps${fps}`).classList.add('active');
-  
   console.log(`Visualizer FPS set to ${fps}`);
 }
-
-document.getElementById('fps24').addEventListener('click', () => setFPS(24));
-document.getElementById('fps30').addEventListener('click', () => setFPS(30));
-document.getElementById('fps60').addEventListener('click', () => setFPS(60));
 
 // ESC key to close
 document.addEventListener('keydown', (e) => {
@@ -1178,7 +1171,7 @@ window.addEventListener('resize', () => {
 console.log('Butterchurn visualizer initialized');
 
 // Settings popover functions
-let settingsPopoverOpen = false;
+// settingsPopoverOpen moved to top with other variables
 
 function openSettingsPopover() {
   const popover = document.getElementById('settingsPopover');
