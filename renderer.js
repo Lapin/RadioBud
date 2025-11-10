@@ -1240,5 +1240,46 @@ function attachSettingsListeners() {
     }
   });
   
+  // Shuffle toggle
+  const shuffleToggle = document.getElementById('shuffleToggle');
+  if (shuffleToggle && !shuffleToggle.dataset.attached) {
+    shuffleToggle.addEventListener('change', (e) => {
+      console.log('Shuffle mode:', e.target.checked);
+    });
+    shuffleToggle.dataset.attached = 'true';
+  }
+  
+  // Auto-cycle toggle
+  let autoCycleInterval = null;
+  const autoCycleToggle = document.getElementById('autoCycleToggle');
+  if (autoCycleToggle && !autoCycleToggle.dataset.attached) {
+    autoCycleToggle.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        console.log('Auto-cycle enabled (40s interval)');
+        autoCycleInterval = setInterval(() => {
+          if (!visualizerActive) return;
+          
+          const shuffleMode = document.getElementById('shuffleToggle')?.checked;
+          if (shuffleMode) {
+            const randomIndex = Math.floor(Math.random() * presets.length);
+            loadPreset(randomIndex);
+            console.log('Auto-cycle: Random preset');
+          } else {
+            const newIndex = (currentPresetIndex + 1) % presets.length;
+            loadPreset(newIndex);
+            console.log('Auto-cycle: Next preset');
+          }
+        }, 40000); // 40 seconds
+      } else {
+        console.log('Auto-cycle disabled');
+        if (autoCycleInterval) {
+          clearInterval(autoCycleInterval);
+          autoCycleInterval = null;
+        }
+      }
+    });
+    autoCycleToggle.dataset.attached = 'true';
+  }
+  
   console.log('Settings listeners attached');
 }
