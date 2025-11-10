@@ -972,8 +972,11 @@ if (themeToggle) {
 }
 
 // Butterchurn Visualizer Integration
-const butterchurn = require('butterchurn');
-const butterchurnPresets = require('butterchurn-presets');
+const butterchurn = require('butterchurn').default || require('butterchurn');
+const butterchurnPresets = require('butterchurn-presets').default || require('butterchurn-presets');
+console.log('Butterchurn object:', butterchurn);
+console.log('Butterchurn keys:', Object.keys(butterchurn));
+console.log('Has createVisualizer:', typeof butterchurn.createVisualizer);
 
 let visualizer = null;
 let visualizerActive = false;
