@@ -1171,7 +1171,6 @@ window.addEventListener('resize', () => {
 console.log('Butterchurn visualizer initialized');
 
 // Settings popover functions
-// settingsPopoverOpen moved to top with other variables
 
 function openSettingsPopover() {
   const popover = document.getElementById('settingsPopover');
