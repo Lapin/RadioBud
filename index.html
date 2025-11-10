@@ -176,16 +176,32 @@
           </div>
         </div>
         
-        <!-- Toggles -->
+        <!-- Auto-cycle Toggle -->
         <div class="settings-group">
-          <label class="toggle-label">
-            <input type="checkbox" id="shuffleToggle">
-            <span>Shuffle Mode</span>
-          </label>
           <label class="toggle-label">
             <input type="checkbox" id="autoCycleToggle">
             <span>Auto-cycle (40s)</span>
           </label>
+        </div>
+        
+        <!-- Audio Sensitivity -->
+        <div class="settings-group">
+          <label>Audio Sensitivity</label>
+          <div class="slider-control">
+            <label class="slider-label">Bass</label>
+            <input type="range" id="bassSlider" min="0" max="200" value="100" class="audio-slider">
+            <span class="slider-value">100%</span>
+          </div>
+          <div class="slider-control">
+            <label class="slider-label">Mid</label>
+            <input type="range" id="midSlider" min="0" max="200" value="100" class="audio-slider">
+            <span class="slider-value">100%</span>
+          </div>
+          <div class="slider-control">
+            <label class="slider-label">Treble</label>
+            <input type="range" id="trebleSlider" min="0" max="200" value="100" class="audio-slider">
+            <span class="slider-value">100%</span>
+          </div>
         </div>
       </div>
     </div>

@@ -1044,3 +1044,63 @@ body.dark .volume-control input[type="range"]::-webkit-slider-thumb {
   font-size: 14px;
   font-weight: 500;
 }
+
+/* Audio Sensitivity Sliders */
+.slider-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.slider-label {
+  font-size: 13px;
+  min-width: 50px;
+  opacity: 0.8;
+}
+
+.audio-slider {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.audio-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #FF6347;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.audio-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.audio-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #FF6347;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.2s;
+}
+
+.audio-slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+}
+
+.slider-value {
+  font-size: 12px;
+  min-width: 45px;
+  text-align: right;
+  opacity: 0.7;
+  font-weight: 600;
+}

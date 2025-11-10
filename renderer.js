@@ -1228,28 +1228,44 @@ function attachSettingsListeners() {
   }
   
   // FPS buttons in popup
-  ['24', '30', '60'].forEach(fps => {
-    const btn = document.getElementById(`fps${fps}Popup`);
-    if (btn && !btn.dataset.attached) {
-      btn.addEventListener('click', () => {
-        setFPS(parseInt(fps));
-        document.querySelectorAll('.fps-btn-popup').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
-      btn.dataset.attached = 'true';
-    }
-  });
+  const fps24Btn = document.getElementById('fps24Popup');
+  const fps30Btn = document.getElementById('fps30Popup');
+  const fps60Btn = document.getElementById('fps60Popup');
   
-  // Shuffle toggle
-  const shuffleToggle = document.getElementById('shuffleToggle');
-  if (shuffleToggle && !shuffleToggle.dataset.attached) {
-    shuffleToggle.addEventListener('change', (e) => {
-      console.log('Shuffle mode:', e.target.checked);
+  if (fps24Btn && !fps24Btn.dataset.attached) {
+    fps24Btn.addEventListener('click', () => {
+      setFPS(24);
+      fps24Btn.classList.add('active');
+      fps30Btn.classList.remove('active');
+      fps60Btn.classList.remove('active');
+      console.log('FPS set to 24');
     });
-    shuffleToggle.dataset.attached = 'true';
+    fps24Btn.dataset.attached = 'true';
   }
   
-  // Auto-cycle toggle
+  if (fps30Btn && !fps30Btn.dataset.attached) {
+    fps30Btn.addEventListener('click', () => {
+      setFPS(30);
+      fps24Btn.classList.remove('active');
+      fps30Btn.classList.add('active');
+      fps60Btn.classList.remove('active');
+      console.log('FPS set to 30');
+    });
+    fps30Btn.dataset.attached = 'true';
+  }
+  
+  if (fps60Btn && !fps60Btn.dataset.attached) {
+    fps60Btn.addEventListener('click', () => {
+      setFPS(60);
+      fps24Btn.classList.remove('active');
+      fps30Btn.classList.remove('active');
+      fps60Btn.classList.add('active');
+      console.log('FPS set to 60');
+    });
+    fps60Btn.dataset.attached = 'true';
+  }
+  
+  // Auto-cycle toggle (removed shuffle mode)
   let autoCycleInterval = null;
   const autoCycleToggle = document.getElementById('autoCycleToggle');
   if (autoCycleToggle && !autoCycleToggle.dataset.attached) {
@@ -1259,16 +1275,10 @@ function attachSettingsListeners() {
         autoCycleInterval = setInterval(() => {
           if (!visualizerActive) return;
           
-          const shuffleMode = document.getElementById('shuffleToggle')?.checked;
-          if (shuffleMode) {
-            const randomIndex = Math.floor(Math.random() * presets.length);
-            loadPreset(randomIndex);
-            console.log('Auto-cycle: Random preset');
-          } else {
-            const newIndex = (currentPresetIndex + 1) % presets.length;
-            loadPreset(newIndex);
-            console.log('Auto-cycle: Next preset');
-          }
+          // Always go to next preset (no shuffle mode)
+          const newIndex = (currentPresetIndex + 1) % presets.length;
+          loadPreset(newIndex);
+          console.log('Auto-cycle: Next preset');
         }, 40000); // 40 seconds
       } else {
         console.log('Auto-cycle disabled');
@@ -1282,4 +1292,43 @@ function attachSettingsListeners() {
   }
   
   console.log('Settings listeners attached');
+
+  // Audio sensitivity sliders
+  const bassSlider = document.getElementById('bassSlider');
+  const midSlider = document.getElementById('midSlider');
+  const trebleSlider = document.getElementById('trebleSlider');
+  
+  if (bassSlider && !bassSlider.dataset.attached) {
+    const bassValue = bassSlider.nextElementSibling;
+    bassSlider.addEventListener('input', (e) => {
+      const value = e.target.value;
+      bassValue.textContent = value + '%';
+      console.log('Bass sensitivity:', value);
+      // Note: This is a UI placeholder - actual audio manipulation would require
+      // modifying butterchurn's internal audio processing
+    });
+    bassSlider.dataset.attached = 'true';
+  }
+  
+  if (midSlider && !midSlider.dataset.attached) {
+    const midValue = midSlider.nextElementSibling;
+    midSlider.addEventListener('input', (e) => {
+      const value = e.target.value;
+      midValue.textContent = value + '%';
+      console.log('Mid sensitivity:', value);
+    });
+    midSlider.dataset.attached = 'true';
+  }
+  
+  if (trebleSlider && !trebleSlider.dataset.attached) {
+    const trebleValue = trebleSlider.nextElementSibling;
+    trebleSlider.addEventListener('input', (e) => {
+      const value = e.target.value;
+      trebleValue.textContent = value + '%';
+      console.log('Treble sensitivity:', value);
+    });
+    trebleSlider.dataset.attached = 'true';
+  }
+  
+  console.log('Settings listeners attached (with audio sliders)');
 }
