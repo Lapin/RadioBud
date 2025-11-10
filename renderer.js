@@ -1012,13 +1012,10 @@ function openVisualizer() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   
-  // Create butterchurn instance
-  visualizer = butterchurn.createVisualizer(audioContext, canvas, {
-    width: canvas.width,
-    height: canvas.height,
-    pixelRatio: window.devicePixelRatio || 1,
-    textureRatio: 1
-  });
+  // Create audio context if not exists
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
   
   // Connect audio if not already connected
   if (!mediaElementSource) {
@@ -1026,7 +1023,23 @@ function openVisualizer() {
     mediaElementSource.connect(audioContext.destination);
   }
   
-  visualizer.connectAudio(mediaElementSource);
+  // Create butterchurn instance using constructor
+  try {
+    visualizer = new butterchurn({
+      canvas: canvas,
+      width: canvas.width,
+      height: canvas.height,
+      pixelRatio: window.devicePixelRatio || 1,
+      textureRatio: 1
+    });
+    
+    visualizer.connectAudio(mediaElementSource);
+    console.log('Butterchurn visualizer created successfully');
+  } catch (error) {
+    console.error('Failed to create visualizer:', error);
+    closeVisualizer();
+    return;
+  }
   
   // Load random preset
   if (presets.length === 0) {
@@ -1073,7 +1086,13 @@ function closeVisualizer() {
   }
   
   if (visualizer) {
-    visualizer.disconnectAudio(mediaElementSource);
+    try {
+      if (mediaElementSource) {
+        visualizer.disconnectAudio(mediaElementSource);
+      }
+    } catch (error) {
+      console.warn('Error disconnecting audio:', error);
+    }
     visualizer = null;
   }
   
