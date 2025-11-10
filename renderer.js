@@ -972,11 +972,17 @@ if (themeToggle) {
 }
 
 // Butterchurn Visualizer Integration
-const butterchurn = require('butterchurn').default || require('butterchurn');
-const butterchurnPresets = require('butterchurn-presets').default || require('butterchurn-presets');
+const butterchurn = require('butterchurn');
+const butterchurnPresets = require('butterchurn-presets');
+
+// Expose to window for butterchurn to work properly
+window.butterchurn = butterchurn;
+window.butterchurnPresets = butterchurnPresets;
+
 console.log('Butterchurn object:', butterchurn);
 console.log('Butterchurn keys:', Object.keys(butterchurn));
 console.log('Has createVisualizer:', typeof butterchurn.createVisualizer);
+console.log('window.butterchurn:', window.butterchurn);
 
 let visualizer = null;
 let visualizerActive = false;
@@ -1023,10 +1029,12 @@ function openVisualizer() {
     mediaElementSource.connect(audioContext.destination);
   }
   
-  // Create butterchurn instance using constructor
+  // Create butterchurn visualizer instance
   try {
-    visualizer = new butterchurn({
-      canvas: canvas,
+    // Butterchurn expects window.butterchurn with static createVisualizer method
+    const bc = window.butterchurn || butterchurn;
+    
+    visualizer = bc.createVisualizer(audioContext, canvas, {
       width: canvas.width,
       height: canvas.height,
       pixelRatio: window.devicePixelRatio || 1,
@@ -1037,6 +1045,7 @@ function openVisualizer() {
     console.log('Butterchurn visualizer created successfully');
   } catch (error) {
     console.error('Failed to create visualizer:', error);
+    console.error('Error details:', error.message);
     closeVisualizer();
     return;
   }
