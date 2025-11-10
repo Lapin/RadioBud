@@ -152,6 +152,44 @@
   <!-- Butterchurn Visualizer Overlay -->
   <div id="visualizerOverlay" class="visualizer-overlay" style="display: none;">
     <canvas id="visualizerCanvas"></canvas>
+    
+    <!-- Settings Button (top-left) -->
+    <button id="openSettingsBtn" class="visualizer-settings-btn">⚙️</button>
+    
+    <!-- Settings Popover (center) -->
+    <div id="settingsPopover" class="settings-popover" style="display: none;">
+      <div class="settings-popover-header">
+        <h3>Settings</h3>
+        <button id="closeSettingsBtn" class="close-settings">×</button>
+      </div>
+      <div class="settings-popover-content">
+        <!-- Random Preset -->
+        <button id="randomPresetBtn" class="settings-btn-large">🎲 Random Preset</button>
+        
+        <!-- FPS Control -->
+        <div class="settings-group">
+          <label>Frame Rate</label>
+          <div class="fps-buttons">
+            <button id="fps24Popup" class="fps-btn-popup active">24</button>
+            <button id="fps30Popup" class="fps-btn-popup">30</button>
+            <button id="fps60Popup" class="fps-btn-popup">60</button>
+          </div>
+        </div>
+        
+        <!-- Toggles -->
+        <div class="settings-group">
+          <label class="toggle-label">
+            <input type="checkbox" id="shuffleToggle">
+            <span>Shuffle Mode</span>
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="autoCycleToggle">
+            <span>Auto-cycle (40s)</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    
     <button id="closeVisualizer" class="close-visualizer">×</button>
     <div class="visualizer-info">
       <div id="visualizerSongInfo"></div>
@@ -159,12 +197,6 @@
         <button id="prevPreset" class="visualizer-btn">← Prev</button>
         <span id="presetName" class="preset-name"></span>
         <button id="nextPreset" class="visualizer-btn">Next →</button>
-      </div>
-      <div class="visualizer-fps-control">
-        <label>FPS:</label>
-        <button id="fps24" class="fps-btn active">24</button>
-        <button id="fps30" class="fps-btn">30</button>
-        <button id="fps60" class="fps-btn">60</button>
       </div>
     </div>
   </div>

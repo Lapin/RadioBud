@@ -1072,6 +1072,9 @@ function openVisualizer() {
   
   // Start render loop
   renderVisualizer();
+  
+  // Attach settings button listeners
+  attachSettingsListeners();
 }
 
 function loadPreset(index) {
@@ -1173,3 +1176,69 @@ window.addEventListener('resize', () => {
 });
 
 console.log('Butterchurn visualizer initialized');
+
+// Settings popover functions
+let settingsPopoverOpen = false;
+
+function openSettingsPopover() {
+  const popover = document.getElementById('settingsPopover');
+  if (popover) {
+    popover.style.display = 'block';
+    settingsPopoverOpen = true;
+    console.log('Settings popover opened');
+  }
+}
+
+function closeSettingsPopover() {
+  const popover = document.getElementById('settingsPopover');
+  if (popover) {
+    popover.style.display = 'none';
+    settingsPopoverOpen = false;
+    console.log('Settings popover closed');
+  }
+}
+
+// Attach settings button listeners when visualizer opens
+function attachSettingsListeners() {
+  const openBtn = document.getElementById('openSettingsBtn');
+  const closeBtn = document.getElementById('closeSettingsBtn');
+  
+  if (openBtn && !openBtn.dataset.attached) {
+    openBtn.addEventListener('click', () => {
+      console.log('Settings button clicked');
+      openSettingsPopover();
+    });
+    openBtn.dataset.attached = 'true';
+  }
+  
+  if (closeBtn && !closeBtn.dataset.attached) {
+    closeBtn.addEventListener('click', closeSettingsPopover);
+    closeBtn.dataset.attached = 'true';
+  }
+  
+  // Random preset
+  const randomBtn = document.getElementById('randomPresetBtn');
+  if (randomBtn && !randomBtn.dataset.attached) {
+    randomBtn.addEventListener('click', () => {
+      const randomIndex = Math.floor(Math.random() * presets.length);
+      loadPreset(randomIndex);
+      console.log('Random preset loaded');
+    });
+    randomBtn.dataset.attached = 'true';
+  }
+  
+  // FPS buttons in popup
+  ['24', '30', '60'].forEach(fps => {
+    const btn = document.getElementById(`fps${fps}Popup`);
+    if (btn && !btn.dataset.attached) {
+      btn.addEventListener('click', () => {
+        setFPS(parseInt(fps));
+        document.querySelectorAll('.fps-btn-popup').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+      btn.dataset.attached = 'true';
+    }
+  });
+  
+  console.log('Settings listeners attached');
+}

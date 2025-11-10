@@ -849,3 +849,198 @@ body.dark .volume-control input[type="range"]::-webkit-slider-thumb {
   border-color: #FF6347;
   box-shadow: 0 2px 8px rgba(255, 99, 71, 0.4);
 }
+
+/* Settings Button */
+.visualizer-settings-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 50px;
+  height: 50px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.visualizer-settings-btn:hover {
+  background: rgba(255, 99, 71, 0.8);
+  border-color: #FF6347;
+  transform: scale(1.1);
+}
+
+/* Settings Popover (Center) */
+.settings-popover {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  max-height: 80vh;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  color: #fff;
+  overflow-y: auto;
+  -webkit-app-region: no-drag;
+  z-index: 1000;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+}
+
+.settings-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-popover-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.close-settings {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 32px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.close-settings:hover {
+  opacity: 1;
+}
+
+.settings-popover-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-btn-large {
+  width: 100%;
+  background: rgba(255, 99, 71, 0.6);
+  border: 2px solid rgba(255, 99, 71, 0.8);
+  color: #fff;
+  padding: 15px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.settings-btn-large:hover {
+  background: rgba(255, 99, 71, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 99, 71, 0.4);
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-group > label {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.8;
+  margin-bottom: 8px;
+}
+
+.fps-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.fps-btn-popup {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.fps-btn-popup:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.fps-btn-popup.active {
+  background: rgba(255, 99, 71, 0.8);
+  border-color: #FF6347;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.toggle-label:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.toggle-label input[type="checkbox"] {
+  width: 50px;
+  height: 26px;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 13px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-label input[type="checkbox"]:checked {
+  background: rgba(255, 99, 71, 0.8);
+}
+
+.toggle-label input[type="checkbox"]::before {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+}
+
+.toggle-label input[type="checkbox"]:checked::before {
+  transform: translateX(24px);
+}
+
+.toggle-label span {
+  font-size: 14px;
+  font-weight: 500;
+}
