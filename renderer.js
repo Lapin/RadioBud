@@ -2,7 +2,7 @@ const SomaFMProvider = require('./providers/somafm.js');
 const NTSProvider = require('./providers/nts.js');
 
 const LASTFM_API_KEY = 'b25b959554ed76058ac220b7b2e0a026';
-const { shell } = require('electron');
+const { shell, ipcRenderer } = require('electron');
 
 const providers = {
   somafm: new SomaFMProvider(),
@@ -20,6 +20,7 @@ let favorites = [];
 let currentSong = null;
 let audioContext = null;
 let mediaElementSource = null;
+let settingsPopoverOpen = false;
 
 const playBtn = document.getElementById('playBtn');
 const stationSelect = document.getElementById('stationSelect');
@@ -35,7 +36,7 @@ nextAudio.volume = 0.0;
 function loadFromStorage() {
   const savedHistory = localStorage.getItem('radiobudHistory');
   const savedFavorites = localStorage.getItem('radiobudFavorites');
-  
+
   if (savedHistory) {
     try {
       playHistory = JSON.parse(savedHistory);
@@ -43,7 +44,7 @@ function loadFromStorage() {
       console.error('Error loading history:', e);
     }
   }
-  
+
   if (savedFavorites) {
     try {
       favorites = JSON.parse(savedFavorites);
@@ -60,7 +61,7 @@ function migrateFavoritesIfNeeded() {
     console.log('Migrating favorites to new ID format...');
     const uniqueFavorites = [];
     const seenIds = new Set();
-    
+
     favorites.forEach(fav => {
       const newId = getSongId(fav);
       if (!seenIds.has(newId)) {
@@ -68,7 +69,7 @@ function migrateFavoritesIfNeeded() {
         uniqueFavorites.push(fav);
       }
     });
-    
+
     favorites = uniqueFavorites;
     saveToStorage();
     localStorage.setItem('radiobudFavoritesMigrated', 'v2');
@@ -93,7 +94,7 @@ function getSongId(song) {
 function addToHistory(song) {
   const songId = getSongId(song);
   const existingIndex = playHistory.findIndex(s => getSongId(s) === songId);
-  
+
   if (existingIndex === -1 || playHistory[0].timestamp < Date.now() - 60000) {
     const historyEntry = {
       ...song,
@@ -102,7 +103,7 @@ function addToHistory(song) {
       timestamp: Date.now(),
       type: providers[currentProvider].getMetadataType()
     };
-    
+
     playHistory.unshift(historyEntry);
     playHistory = playHistory.slice(0, 100);
     saveToStorage();
@@ -115,7 +116,7 @@ async function fetchItunesData(artist, title) {
     const url = `https://itunes.apple.com/search?term=${query}&media=music&entity=song&limit=1`;
     const response = await fetch(url);
     const data = await response.json();
-    
+
     if (data.results && data.results.length > 0) {
       const track = data.results[0];
       return {
@@ -139,7 +140,7 @@ async function fetchLastfmArt(artist, title) {
     const url = `https://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key=${LASTFM_API_KEY}&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(title)}&format=json`;
     const response = await fetch(url);
     const data = await response.json();
-    
+
     const artUrl = data.track?.album?.image?.find(img => img.size === 'large')?.[`#text`] || null;
     return artUrl && artUrl !== '' ? artUrl : null;
   } catch (error) {
@@ -152,14 +153,14 @@ async function fetchAlbumArt(artist, title) {
   const cacheKey = `art_${artist}_${title}`.toLowerCase().replace(/\s+/g, '_');
   const metaCacheKey = `meta_${artist}_${title}`.toLowerCase().replace(/\s+/g, '_');
   const cached = localStorage.getItem(cacheKey);
-  
+
   if (cached && cached !== 'null') {
     return cached;
   }
-  
+
   const itunesData = await fetchItunesData(artist, title);
   let artUrl = itunesData?.artUrl;
-  
+
   if (itunesData) {
     localStorage.setItem(metaCacheKey, JSON.stringify({
       albumName: itunesData.albumName,
@@ -168,17 +169,17 @@ async function fetchAlbumArt(artist, title) {
       trackUrl: itunesData.trackUrl
     }));
   }
-  
+
   if (!artUrl) {
     artUrl = await fetchLastfmArt(artist, title);
   }
-  
+
   if (artUrl) {
     localStorage.setItem(cacheKey, artUrl);
   } else {
     localStorage.setItem(cacheKey, 'null');
   }
-  
+
   return artUrl;
 }
 
@@ -197,7 +198,7 @@ function getTrackMetadata(artist, title) {
 
 function updateAlbumArt(artUrl) {
   const albumArtEl = document.getElementById('albumArt');
-  
+
   if (artUrl) {
     albumArtEl.innerHTML = `
       <img src="${artUrl}" alt="Album Art" class="album-art-img">
@@ -210,7 +211,7 @@ function updateAlbumArt(artUrl) {
   } else {
     albumArtEl.innerHTML = '<span class="no-artwork">No Artwork</span>';
   }
-  
+
   // Add click handler to open visualizer
   albumArtEl.onclick = () => {
     if (isPlaying) {
@@ -224,27 +225,27 @@ function generateServiceLinks(artist, title) {
   const lastfmUrl = `https://www.last.fm/music/${encodeURIComponent(artist.replace(/\s+/g, '+'))}/_/${encodeURIComponent(title.replace(/\s+/g, '+'))}`;
   const bandcampUrl = `https://bandcamp.com/search?q=${encodeURIComponent(`${artist} ${title}`)}`;
   const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${artist} ${title}`)}`;
-  
+
   return { lastfmUrl, bandcampUrl, youtubeUrl };
 }
 
 function updateServiceLinks(artist, title) {
   const { lastfmUrl, bandcampUrl, youtubeUrl } = generateServiceLinks(artist, title);
-  
+
   const lastfmLink = document.getElementById('lastfmLink');
   const bandcampLink = document.getElementById('bandcampLink');
   const youtubeLink = document.getElementById('youtubeLink');
-  
+
   lastfmLink.onclick = (e) => {
     e.preventDefault();
     shell.openExternal(lastfmUrl);
   };
-  
+
   bandcampLink.onclick = (e) => {
     e.preventDefault();
     shell.openExternal(bandcampUrl);
   };
-  
+
   youtubeLink.onclick = (e) => {
     e.preventDefault();
     shell.openExternal(youtubeUrl);
@@ -255,36 +256,42 @@ async function fetchNowPlaying() {
   try {
     const provider = providers[currentProvider];
     const result = await provider.fetchNowPlaying(currentStation);
-    
+
     if (result) {
       const { artist, title, artwork, showChanged } = result;
       nowPlaying.textContent = `${artist} - ${title}`;
-      
+
       const newSong = {
         artist: artist,
         title: title,
         album: result.album || null
       };
-      
+
       const metadataType = provider.getMetadataType();
-      const shouldAddToHistory = metadataType === 'track' 
+      const shouldAddToHistory = metadataType === 'track'
         ? (isPlaying && currentSong && getSongId(currentSong) !== getSongId(newSong))
         : (isPlaying && showChanged);
-      
+
       if (shouldAddToHistory) {
         addToHistory(newSong);
       }
-      
+
+      const songChanged = currentSong && getSongId(currentSong) !== getSongId(newSong);
       currentSong = newSong;
       updateStarIcons();
       updateServiceLinks(artist, title);
-      
+
       let artUrl = artwork || null;
       if (!artUrl && metadataType === 'track') {
         artUrl = await fetchAlbumArt(artist, title);
       }
       updateAlbumArt(artUrl);
       updateTrackMetadata(artist, title);
+
+      // Update visualizer info panel if visualizer is active and song changed
+      if (visualizerActive && songChanged) {
+        updateVisualizerInfo();
+      }
     }
   } catch (error) {
     console.error('Error fetching now playing:', error);
@@ -294,13 +301,13 @@ async function fetchNowPlaying() {
 function updateTrackMetadata(artist, title) {
   const trackMetaEl = document.getElementById('trackMeta');
   const metadata = getTrackMetadata(artist, title);
-  
+
   if (metadata && (metadata.albumName || metadata.releaseYear || metadata.genre)) {
     const parts = [];
     if (metadata.albumName) parts.push(metadata.albumName);
     if (metadata.releaseYear) parts.push(metadata.releaseYear);
     if (metadata.genre) parts.push(metadata.genre);
-    
+
     trackMetaEl.textContent = parts.join(' • ');
     trackMetaEl.style.display = 'block';
   } else {
@@ -318,10 +325,10 @@ function toggleFavorite(song) {
   const songId = getSongId(song);
   console.log('Toggling favorite:', song.artist, '-', song.title, '| ID:', songId);
   console.log('Current favorites IDs:', favorites.map(f => getSongId(f)));
-  
+
   const index = favorites.findIndex(fav => getSongId(fav) === songId);
   console.log('Found at index:', index);
-  
+
   if (index === -1) {
     favorites.push({
       ...song,
@@ -333,10 +340,10 @@ function toggleFavorite(song) {
     favorites.splice(index, 1);
     console.log('Removed from favorites');
   }
-  
+
   saveToStorage();
   updateStarIcons();
-  
+
   if (document.getElementById('favoritesView').classList.contains('hidden') === false) {
     renderFavorites();
   }
@@ -376,7 +383,7 @@ function switchToTab(tab) {
   radioView.classList.remove('active');
   historyView.classList.remove('active');
   favoritesView.classList.remove('active');
-  
+
   if (tab === 'radio') {
     mainTabRadio.classList.add('active');
     radioView.classList.add('active');
@@ -406,24 +413,26 @@ function formatTime(timestamp) {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
-  
+
   if (diffMins < 60) {
     return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
   }
-  
+
   if (diffHours < 24) {
     return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
   }
-  
+
   if (diffDays === 1) {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     return `yesterday, ${hours}:${minutes}`;
   }
-  
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  return `${day}${month}`;
+
+  // For older dates, show readable format like "Dec 4" or "Jan 15"
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[date.getMonth()];
+  const day = date.getDate();
+  return `${month} ${day}`;
 }
 
 function renderHistory() {
@@ -431,7 +440,7 @@ function renderHistory() {
     historyContent.innerHTML = '<div class="history-empty">No songs played yet</div>';
     return;
   }
-  
+
   historyContent.innerHTML = playHistory.map((song, index) => {
     const isFav = isFavorited(song);
     const timeStr = formatTime(song.timestamp);
@@ -445,7 +454,7 @@ function renderHistory() {
       </div>
     `;
   }).join('');
-  
+
   historyContent.querySelectorAll('.history-item-star').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const index = parseInt(e.target.dataset.index);
@@ -461,9 +470,9 @@ function renderFavorites() {
     favoritesContent.innerHTML = '<div class="history-empty">No favorites yet</div>';
     return;
   }
-  
+
   const sortedFavorites = [...favorites].sort((a, b) => b.favoritedAt - a.favoritedAt);
-  
+
   favoritesContent.innerHTML = sortedFavorites.map((song, index) => {
     const timeStr = formatTime(song.favoritedAt);
     const { lastfmUrl, bandcampUrl, youtubeUrl } = generateServiceLinks(song.artist, song.title);
@@ -499,7 +508,7 @@ function renderFavorites() {
       </div>
     `;
   }).join('');
-  
+
   favoritesContent.querySelectorAll('.history-item-star').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const index = parseInt(e.target.dataset.index);
@@ -508,7 +517,7 @@ function renderFavorites() {
       renderFavorites();
     });
   });
-  
+
   favoritesContent.querySelectorAll('.history-service-icon').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
@@ -516,7 +525,7 @@ function renderFavorites() {
       shell.openExternal(url);
     });
   });
-  
+
   sortedFavorites.forEach(async (song, index) => {
     const artUrl = await fetchAlbumArt(song.artist, song.title);
     const artEl = favoritesContent.querySelector(`.history-item-album-art[data-index="${index}"]`);
@@ -549,12 +558,12 @@ playBtn.addEventListener('click', () => {
     const fadeSteps = 10;
     const fadeInterval = 50;
     let step = 0;
-    
+
     const fadeOutTimer = setInterval(() => {
       step++;
       const progress = step / fadeSteps;
       currentAudio.volume = Math.max(0, masterVolume * (1 - progress));
-      
+
       if (step >= fadeSteps) {
         clearInterval(fadeOutTimer);
         currentAudio.pause();
@@ -573,16 +582,16 @@ playBtn.addEventListener('click', () => {
     currentAudio.play();
     isPlaying = true;
     updatePlayButtonIcon();
-    
+
     const fadeSteps = 20;
     const fadeInterval = 50;
     let step = 0;
-    
+
     const fadeInTimer = setInterval(() => {
       step++;
       const progress = step / fadeSteps;
       currentAudio.volume = Math.min(masterVolume, progress * masterVolume);
-      
+
       if (step >= fadeSteps) {
         clearInterval(fadeInTimer);
         currentAudio.volume = masterVolume;
@@ -599,37 +608,37 @@ async function switchStation(newStation, newProvider = null) {
     currentProvider = newProvider;
     populateStationDropdown();
   }
-  
+
   currentStation = newStation;
-  
+
   const streamUrl = providers[currentProvider].getStreamUrl(currentStation);
   nextAudio.src = streamUrl;
   nextAudio.load();
   fetchNowPlaying();
-  
+
   if (!isPlaying) {
     return;
   }
-  
+
   try {
     await nextAudio.play();
-    
+
     const fadeSteps = 20;
     const fadeInterval = 50;
     let step = 0;
-    
+
     const fadeTimer = setInterval(() => {
       step++;
       const progress = step / fadeSteps;
-      
+
       currentAudio.volume = Math.max(0, masterVolume * (1 - progress));
       nextAudio.volume = Math.min(masterVolume, masterVolume * progress);
-      
+
       if (step >= fadeSteps) {
         clearInterval(fadeTimer);
         currentAudio.pause();
         currentAudio.volume = masterVolume;
-        
+
         const temp = currentAudio;
         currentAudio = nextAudio;
         nextAudio = temp;
@@ -644,7 +653,7 @@ function populateStationDropdown() {
   const provider = providers[currentProvider];
   const stationNames = provider.getStationNames();
   const stationIds = Object.keys(stationNames);
-  
+
   stationSelect.innerHTML = '';
   stationIds.forEach(stationId => {
     const option = document.createElement('option');
@@ -652,7 +661,7 @@ function populateStationDropdown() {
     option.textContent = stationNames[stationId];
     stationSelect.appendChild(option);
   });
-  
+
   currentStation = stationIds[0];
   stationSelect.value = currentStation;
 }
@@ -667,12 +676,12 @@ if (radioSelect) {
         const fadeSteps = 10;
         const fadeInterval = 50;
         let step = 0;
-        
+
         const fadeOutTimer = setInterval(() => {
           step++;
           const progress = step / fadeSteps;
           currentAudio.volume = Math.max(0, masterVolume * (1 - progress));
-          
+
           if (step >= fadeSteps) {
             clearInterval(fadeOutTimer);
             currentAudio.pause();
@@ -680,7 +689,7 @@ if (radioSelect) {
             currentAudio.volume = masterVolume;
             isPlaying = false;
             updatePlayButtonIcon();
-            
+
             // Now switch provider
             currentProvider = newProvider;
             populateStationDropdown();
@@ -716,12 +725,12 @@ function handleAudioError(audio, e, isCurrentAudio = true) {
     networkState: audio.networkState,
     readyState: audio.readyState
   });
-  
+
   if (!isCurrentAudio) {
     console.log('Error on next audio during preload, ignoring');
     return;
   }
-  
+
   const now = Date.now();
   if (now - lastErrorTime < 5000) {
     audioErrorCount++;
@@ -729,7 +738,7 @@ function handleAudioError(audio, e, isCurrentAudio = true) {
     audioErrorCount = 1;
   }
   lastErrorTime = now;
-  
+
   if (audioErrorCount > MAX_ERROR_RETRIES) {
     console.error('Too many audio errors, stopping playback');
     isPlaying = false;
@@ -738,7 +747,7 @@ function handleAudioError(audio, e, isCurrentAudio = true) {
     audioErrorCount = 0;
     return;
   }
-  
+
   if (isPlaying) {
     console.log(`Attempting to recover from audio error (attempt ${audioErrorCount}/${MAX_ERROR_RETRIES})`);
     setTimeout(() => {
@@ -765,11 +774,11 @@ let stallTimeout = null;
 
 function handleStalled(audio, audioName) {
   console.warn(`${audioName} audio stalled - buffering issues detected`);
-  
+
   if (stallTimeout) {
     clearTimeout(stallTimeout);
   }
-  
+
   stallTimeout = setTimeout(() => {
     if (isPlaying && audio === currentAudio) {
       console.error('Stream stalled for too long, attempting recovery');
@@ -855,45 +864,45 @@ function devicesChanged(oldDevices, newDevices) {
   if (oldDevices.length !== newDevices.length) {
     return true;
   }
-  
+
   const oldIds = new Set(oldDevices.map(d => d.id));
   const newIds = new Set(newDevices.map(d => d.id));
-  
+
   for (const id of oldIds) {
     if (!newIds.has(id)) {
       return true;
     }
   }
-  
+
   for (const id of newIds) {
     if (!oldIds.has(id)) {
       return true;
     }
   }
-  
+
   return false;
 }
 
 async function handleAudioDeviceChange() {
   console.log('Device change event detected');
   const newSnapshot = await getAudioDeviceSnapshot();
-  
+
   console.log('Previous devices:', lastDeviceSnapshot.length);
   console.log('Current devices:', newSnapshot.length);
-  
+
   const configChanged = lastDeviceSnapshot.length > 0 && devicesChanged(lastDeviceSnapshot, newSnapshot);
-  
+
   if (configChanged) {
     console.log('Audio device configuration changed');
     console.log('Old:', lastDeviceSnapshot.map(d => d.label || d.id));
     console.log('New:', newSnapshot.map(d => d.label || d.id));
-    
+
     // Only stop if we're playing and devices were actually removed (not just added)
     if (isPlaying && lastDeviceSnapshot.length > 0) {
       const oldIds = new Set(lastDeviceSnapshot.map(d => d.id));
       const newIds = new Set(newSnapshot.map(d => d.id));
       const devicesRemoved = [...oldIds].some(id => !newIds.has(id));
-      
+
       if (devicesRemoved) {
         console.log('Audio output device was removed, stopping playback immediately');
         currentAudio.pause();
@@ -906,7 +915,7 @@ async function handleAudioDeviceChange() {
       }
     }
   }
-  
+
   lastDeviceSnapshot = newSnapshot;
 }
 
@@ -992,10 +1001,57 @@ let visualizerActive = false;
 let currentPresetIndex = 0;
 let presets = [];
 let animationFrameId = null;
+
+// Favorite presets storage
+let favoritePresets = [];
+
+// Shuffle settings
+let shuffleEnabled = true; // Enabled by default
+let shuffleMinutes = 5; // Default 5 minutes
+let shuffleInterval = null;
+
+function loadFavoritePresets() {
+  const saved = localStorage.getItem('radiobudFavoritePresets');
+  if (saved) {
+    try {
+      favoritePresets = JSON.parse(saved);
+    } catch (e) {
+      console.error('Error loading favorite presets:', e);
+      favoritePresets = [];
+    }
+  }
+}
+
+function saveFavoritePresets() {
+  localStorage.setItem('radiobudFavoritePresets', JSON.stringify(favoritePresets));
+}
+
+function isPresetFavorited(presetName) {
+  return favoritePresets.includes(presetName);
+}
+
+function togglePresetFavorite(presetName) {
+  const index = favoritePresets.indexOf(presetName);
+  if (index === -1) {
+    favoritePresets.push(presetName);
+  } else {
+    favoritePresets.splice(index, 1);
+  }
+  saveFavoritePresets();
+}
+
+// Extract artist name from preset name (e.g., "Artist - Preset Name" -> "Artist")
+function getPresetArtist(presetName) {
+  if (presetName.includes(' - ')) {
+    return presetName.split(' - ')[0];
+  }
+  return presetName;
+}
+
+loadFavoritePresets();
 let targetFPS = 24; // Default to 24 FPS
 let lastFrameTime = 0;
 let frameInterval = 1000 / 24; // ~41.67ms for 24 FPS
-let settingsPopoverOpen = false;
 
 // Initialize presets
 function initializePresets() {
@@ -1012,42 +1068,41 @@ function openVisualizer() {
     console.warn('Cannot open visualizer: no audio playing');
     return;
   }
-  
+
   const overlay = document.getElementById('visualizerOverlay');
   const canvas = document.getElementById('visualizerCanvas');
-  const songInfo = document.getElementById('visualizerSongInfo');
-  
+
   // Show overlay
   overlay.style.display = 'flex';
   visualizerActive = true;
-  
+
   // Set canvas size to window size
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  
+
   // Create audio context if not exists
   if (!audioContext) {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
   }
-  
+
   // Connect audio if not already connected
   if (!mediaElementSource) {
     mediaElementSource = audioContext.createMediaElementSource(currentAudio);
     mediaElementSource.connect(audioContext.destination);
   }
-  
+
   // Create butterchurn visualizer instance
   try {
     // Butterchurn expects window.butterchurn with static createVisualizer method
     const bc = (window.butterchurn && window.butterchurn.default) || butterchurn.default || butterchurn;
-    
+
     visualizer = bc.createVisualizer(audioContext, canvas, {
       width: canvas.width,
       height: canvas.height,
       pixelRatio: window.devicePixelRatio || 1,
       textureRatio: 1
     });
-    
+
     visualizer.connectAudio(mediaElementSource);
     console.log('Butterchurn visualizer created successfully');
   } catch (error) {
@@ -1056,271 +1111,679 @@ function openVisualizer() {
     closeVisualizer();
     return;
   }
-  
+
   // Load random preset
   if (presets.length === 0) {
     initializePresets();
   }
   currentPresetIndex = Math.floor(Math.random() * presets.length);
   loadPreset(currentPresetIndex);
-  
-  // Update song info
-  if (currentSong) {
-    songInfo.textContent = `${currentSong.artist} - ${currentSong.title}`;
-  } else {
-    songInfo.textContent = 'RadioBud Visualizer';
-  }
-  
+
+  // Update song info and album art in info panel
+  updateVisualizerInfo();
+
   // Start render loop
   renderVisualizer();
-  
+
   // Attach settings button listeners
   attachSettingsListeners();
+
+  // Attach favorite preset button listener
+  attachFavoritePresetListener();
+
+  // Setup mouse enter/leave handlers for fade effects
+  setupVisualizerMouseHandlers();
+
+  // Start shuffle timer (enabled by default)
+  startShuffleTimer();
 }
 
-function loadPreset(index) {
-  if (index < 0 || index >= presets.length || !visualizer) return;
-  
-  currentPresetIndex = index;
-  const preset = presets[index];
-  visualizer.loadPreset(preset.preset, 0.0); // 0.0 = no transition
-  
-  document.getElementById('presetName').textContent = preset.name;
-  console.log('Loaded preset:', preset.name);
-}
+function updateVisualizerInfo() {
+  const songTitle = document.getElementById('visualizerSongTitle');
+  const albumArt = document.getElementById('visualizerAlbumArt');
 
-function renderVisualizer(currentTime) {
-  if (!visualizerActive || !visualizer) return;
-  
-  animationFrameId = requestAnimationFrame(renderVisualizer);
-  
-  // Calculate time since last frame
-  const elapsed = currentTime - lastFrameTime;
-  
-  // Only render if enough time has passed for target FPS
-  if (elapsed >= frameInterval) {
-    // Adjust for any drift
-    lastFrameTime = currentTime - (elapsed % frameInterval);
-    
-    visualizer.render();
+  if (currentSong) {
+    songTitle.textContent = `${currentSong.artist} - ${currentSong.title}`;
+
+    // Get album art from main player
+    const mainAlbumArt = document.getElementById('albumArt');
+    const img = mainAlbumArt.querySelector('img');
+
+    if (img) {
+      albumArt.innerHTML = `<img src="${img.src}" alt="Album Art">`;
+    } else {
+      albumArt.innerHTML = '<span class="no-artwork-small">—</span>';
+    }
+  } else {
+    songTitle.textContent = 'RadioBud Visualizer';
+    albumArt.innerHTML = '<span class="no-artwork-small">—</span>';
   }
+
+}
+
+function renderVisualizer() {
+  if (!visualizerActive || !visualizer) return;
+
+  const currentTime = performance.now();
+  const elapsed = currentTime - lastFrameTime;
+
+  // FPS limiting
+  if (elapsed >= frameInterval) {
+    lastFrameTime = currentTime - (elapsed % frameInterval);
+
+    try {
+      visualizer.render();
+    } catch (error) {
+      console.error('Render error:', error);
+    }
+  }
+
+  animationFrameId = requestAnimationFrame(renderVisualizer);
 }
 
 function closeVisualizer() {
   visualizerActive = false;
-  
+
+  const overlay = document.getElementById('visualizerOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+
+  // Cancel animation frame
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
   }
-  
-  if (visualizer) {
-    try {
-      if (mediaElementSource) {
-        visualizer.disconnectAudio(mediaElementSource);
-      }
-    } catch (error) {
-      console.warn('Error disconnecting audio:', error);
-    }
-    visualizer = null;
-  }
-  
-  const overlay = document.getElementById('visualizerOverlay');
-  overlay.style.display = 'none';
+
+  // Stop shuffle timer
+  stopShuffleTimer();
+
+  console.log('Visualizer closed');
 }
 
-// Event listeners for visualizer
-document.getElementById('closeVisualizer').addEventListener('click', closeVisualizer);
-
-document.getElementById('prevPreset').addEventListener('click', () => {
-  const newIndex = (currentPresetIndex - 1 + presets.length) % presets.length;
-  loadPreset(newIndex);
-});
-
-document.getElementById('nextPreset').addEventListener('click', () => {
-  const newIndex = (currentPresetIndex + 1) % presets.length;
-  loadPreset(newIndex);
-});
-
-// FPS control buttons
-// FPS function moved inside attachSettingsListeners()
-function setFPS(fps) {
-  targetFPS = fps;
-  frameInterval = 1000 / fps;
-  lastFrameTime = 0; // Reset timing
-  console.log(`Visualizer FPS set to ${fps}`);
-}
-
-// ESC key to close
+// Keyboard controls for visualizer
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && visualizerActive) {
-    closeVisualizer();
+  if (!visualizerActive) return;
+
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    const newIndex = (currentPresetIndex - 1 + presets.length) % presets.length;
+    loadPreset(newIndex);
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    const newIndex = (currentPresetIndex + 1) % presets.length;
+    loadPreset(newIndex);
+  } else if (e.key === 'r' || e.key === 'R') {
+    e.preventDefault();
+    const randomIndex = Math.floor(Math.random() * presets.length);
+    loadPreset(randomIndex);
   }
 });
 
-// Handle window resize
-window.addEventListener('resize', () => {
-  if (visualizerActive && visualizer) {
-    const canvas = document.getElementById('visualizerCanvas');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    visualizer.setRendererSize(canvas.width, canvas.height);
-  }
-});
+function loadPreset(index) {
+  if (index < 0 || index >= presets.length || !visualizer) return;
 
-console.log('Butterchurn visualizer initialized');
+  try {
+    currentPresetIndex = index;
+    const preset = presets[index];
+    visualizer.loadPreset(preset.preset, 0.0); // 0.0 = no transition
 
-// Settings popover functions
+    // Extract artist and preset name
+    // Standard format often: "Artist - Preset Name"
+    let artistName = '';
+    let presetTitle = preset.name;
 
-function openSettingsPopover() {
-  const popover = document.getElementById('settingsPopover');
-  if (popover) {
-    popover.style.display = 'block';
-    settingsPopoverOpen = true;
-    console.log('Settings popover opened');
+    if (preset.name && preset.name.includes(' - ')) {
+      const parts = preset.name.split(' - ');
+      artistName = parts[0];
+      presetTitle = parts.slice(1).join(' - ');
+    } else {
+      artistName = preset.name || 'Unknown Preset';
+      presetTitle = '';
+    }
+
+    const presetArtistEl = document.getElementById('presetArtist');
+
+    if (presetArtistEl) {
+      if (presetTitle) {
+        presetArtistEl.textContent = `${artistName} - ${presetTitle}`;
+      } else {
+        presetArtistEl.textContent = artistName;
+      }
+    }
+
+    updatePresetFavoriteButton(preset.name);
+    console.log('Loaded preset:', preset.name);
+  } catch (err) {
+    console.error('Error loading preset:', err);
   }
 }
 
-function closeSettingsPopover() {
-  const popover = document.getElementById('settingsPopover');
-  if (popover) {
-    popover.style.display = 'none';
-    settingsPopoverOpen = false;
-    console.log('Settings popover closed');
-  }
-}
+function renderPresetList(searchTerm = '') {
+  const presetList = document.getElementById('presetList');
+  if (!presetList) return;
 
-// Attach settings button listeners when visualizer opens
-function attachSettingsListeners() {
-  const openBtn = document.getElementById('openSettingsBtn');
-  const closeBtn = document.getElementById('closeSettingsBtn');
-  
-  if (openBtn && !openBtn.dataset.attached) {
-    openBtn.addEventListener('click', () => {
-      console.log('Settings button clicked');
-      openSettingsPopover();
+  let filteredPresets = presets;
+
+  // Filter by search term
+  if (searchTerm) {
+    const term = searchTerm.toLowerCase();
+    filteredPresets = presets.filter(p =>
+      p.name.toLowerCase().includes(term)
+    );
+  }
+
+  // Sort: Favorites first, then Alphabetical
+  filteredPresets.sort((a, b) => {
+    const aFav = isPresetFavorited(a.name);
+    const bFav = isPresetFavorited(b.name);
+
+    if (aFav && !bFav) return -1;
+    if (!aFav && bFav) return 1;
+
+    // If both favorite or both not favorite, sort alphabetically
+    return a.name.localeCompare(b.name);
+  });
+
+  if (filteredPresets.length === 0) {
+    presetList.innerHTML = '<div style="padding: 20px; text-align: center; color: rgba(255,255,255,0.6);">No presets found</div>';
+    return;
+  }
+
+  const listHtml = filteredPresets.map((preset) => {
+    // We need original index for loading
+    // Since we sorted/filtered, we must find the index in the main 'presets' array
+    const actualIndex = presets.indexOf(preset);
+    const isFavorited = isPresetFavorited(preset.name);
+    const isCurrent = actualIndex === currentPresetIndex;
+
+    return `
+      <div class="preset-item ${isCurrent ? 'active' : ''}" data-index="${actualIndex}">
+        <div class="preset-item-content">
+          <span class="preset-item-name">${preset.name}</span>
+          ${isCurrent ? '<span class="preset-item-current">Current</span>' : ''}
+        </div>
+        <button class="preset-item-favorite ${isFavorited ? 'favorited' : ''}" data-index="${actualIndex}" title="Favorite this preset">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  presetList.innerHTML = listHtml;
+
+  // Attach click handlers
+  presetList.querySelectorAll('.preset-item').forEach(item => {
+    const favoriteBtn = item.querySelector('.preset-item-favorite');
+    const presetIndex = parseInt(item.dataset.index);
+
+    // Click on preset item to load it
+    item.addEventListener('click', (e) => {
+      // Don't trigger load if clicking the favorite button
+      if (e.target !== favoriteBtn && !favoriteBtn.contains(e.target)) {
+        loadPreset(presetIndex);
+        // Re-render to update current selection indicator (and re-sort if we wanted, but maybe better to keep list stable for now?)
+        // Actually re-rendering might jump the list if order changes. 
+        // For now, let's re-render to show 'active' class update correctly.
+        renderPresetList(searchTerm);
+      }
     });
-    openBtn.dataset.attached = 'true';
+
+    // Click on favorite button
+    if (favoriteBtn) {
+      favoriteBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Stop bubbling to item click
+        const preset = presets[presetIndex];
+        togglePresetFavorite(preset.name);
+
+        // Re-render to update favorite state and re-sort
+        renderPresetList(searchTerm);
+      });
+    }
+  });
+}
+
+function startShuffleTimer() {
+  // Clear any existing interval
+  stopShuffleTimer();
+
+  if (!shuffleEnabled || !visualizerActive) return;
+
+  const intervalMs = shuffleMinutes * 60 * 1000;
+  console.log(`Starting shuffle timer: ${shuffleMinutes} minute(s)`);
+
+  shuffleInterval = setInterval(() => {
+    if (!visualizerActive) {
+      stopShuffleTimer();
+      return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * presets.length);
+    loadPreset(randomIndex);
+    console.log('Shuffle: Random preset loaded');
+  }, intervalMs);
+}
+
+function stopShuffleTimer() {
+  if (shuffleInterval) {
+    clearInterval(shuffleInterval);
+    shuffleInterval = null;
+    console.log('Shuffle timer stopped');
   }
-  
+}
+
+function updatePresetFavoriteButton(presetName) {
+  const favoriteBtn = document.getElementById('favoritePresetBtn');
+  if (!favoriteBtn) return;
+
+  if (isPresetFavorited(presetName)) {
+    favoriteBtn.classList.add('favorited');
+  } else {
+    favoriteBtn.classList.remove('favorited');
+  }
+}
+
+function attachFavoritePresetListener() {
+  const favoriteBtn = document.getElementById('favoritePresetBtn');
+  if (!favoriteBtn || favoriteBtn.dataset.attached) return;
+
+  favoriteBtn.addEventListener('click', () => {
+    if (presets.length === 0 || currentPresetIndex < 0) return;
+
+    const preset = presets[currentPresetIndex];
+    togglePresetFavorite(preset.name);
+    updatePresetFavoriteButton(preset.name);
+
+    // Show heart animation
+    const heartAnim = document.getElementById('favoriteHeartAnimation');
+    if (heartAnim) {
+      heartAnim.style.display = 'block';
+      setTimeout(() => {
+        heartAnim.style.display = 'none';
+      }, 1000);
+    }
+  });
+
+  favoriteBtn.dataset.attached = 'true';
+}
+
+// Visualizer mouse handlers for fade effects and interactions
+let visualizerFadeTimeout = null;
+
+function setupVisualizerMouseHandlers() {
+  const overlay = document.getElementById('visualizerOverlay');
+  if (!overlay || overlay.dataset.mouseHandlersAttached) return;
+
+  overlay.addEventListener('mouseenter', handleVisualizerMouseEnter);
+  overlay.addEventListener('mouseleave', handleVisualizerMouseLeave);
+
+  // Double click to favorite current song
+  overlay.addEventListener('dblclick', (e) => {
+    // Prevent if clicking on controls
+    if (e.target.closest('.visualizer-top-controls') ||
+      e.target.closest('.visualizer-info-panel') ||
+      e.target.closest('.settings-popover')) {
+      return;
+    }
+
+    // Toggle favorite if song is playing
+    const starBtn = document.getElementById('starBtn');
+    if (starBtn && currentSong) {
+      // Simulate click on star button which handles toggleFavorite
+      starBtn.click();
+
+      // Show heart animation
+      const heartAnim = document.getElementById('favoriteHeartAnimation');
+      if (heartAnim) {
+        // Reset animation
+        heartAnim.style.display = 'none';
+        heartAnim.offsetHeight; // trigger reflow
+        heartAnim.style.display = 'block';
+
+        setTimeout(() => {
+          heartAnim.style.display = 'none';
+        }, 1000);
+      }
+    }
+  });
+
+  overlay.dataset.mouseHandlersAttached = 'true';
+}
+
+function handleVisualizerMouseEnter() {
+  const overlay = document.getElementById('visualizerOverlay');
+  if (!overlay) return;
+
+  // Clear any existing fade timeout
+  if (visualizerFadeTimeout) {
+    clearTimeout(visualizerFadeTimeout);
+    visualizerFadeTimeout = null;
+  }
+
+  // Make all UI items visible
+  overlay.classList.remove('mouse-out', 'faded');
+}
+
+function handleVisualizerMouseLeave() {
+  const overlay = document.getElementById('visualizerOverlay');
+  if (!overlay) return;
+
+  // Set mouse-out class to reduce opacity
+  overlay.classList.add('mouse-out');
+  overlay.classList.remove('faded');
+
+  // After 40 seconds, fade out completely
+  if (visualizerFadeTimeout) {
+    clearTimeout(visualizerFadeTimeout);
+  }
+
+  visualizerFadeTimeout = setTimeout(() => {
+    const currentOverlay = document.getElementById('visualizerOverlay');
+    if (currentOverlay) {
+      currentOverlay.classList.add('faded');
+    }
+    visualizerFadeTimeout = null;
+  }, 40000); // 40 seconds
+}
+
+function attachSettingsListeners() {
+  // Close button
+  const closeBtn = document.getElementById('closeVisualizer');
   if (closeBtn && !closeBtn.dataset.attached) {
-    closeBtn.addEventListener('click', closeSettingsPopover);
+    closeBtn.addEventListener('click', closeVisualizer);
     closeBtn.dataset.attached = 'true';
   }
-  
-  // Random preset
-  const randomBtn = document.getElementById('randomPresetBtn');
-  if (randomBtn && !randomBtn.dataset.attached) {
-    randomBtn.addEventListener('click', () => {
-      const randomIndex = Math.floor(Math.random() * presets.length);
-      loadPreset(randomIndex);
-      console.log('Random preset loaded');
+
+  // Options button to open settings popover
+  const visualizerOptions = document.getElementById('visualizerOptions');
+  const settingsPopover = document.getElementById('settingsPopover');
+
+  if (visualizerOptions && !visualizerOptions.dataset.attached) {
+    visualizerOptions.addEventListener('click', () => {
+      if (settingsPopover) {
+        settingsPopover.classList.add('active');
+        settingsPopoverOpen = true;
+      }
     });
-    randomBtn.dataset.attached = 'true';
+    visualizerOptions.dataset.attached = 'true';
   }
-  
-  // FPS buttons in popup
+
+  // Close settings popover button
+  const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+  if (closeSettingsBtn && !closeSettingsBtn.dataset.attached) {
+    closeSettingsBtn.addEventListener('click', () => {
+      if (settingsPopover) {
+        settingsPopover.classList.remove('active');
+        settingsPopoverOpen = false;
+      }
+    });
+    closeSettingsBtn.dataset.attached = 'true';
+  }
+
+  // FPS controls
   const fps24Btn = document.getElementById('fps24Popup');
   const fps30Btn = document.getElementById('fps30Popup');
   const fps60Btn = document.getElementById('fps60Popup');
-  
+
+  function setFPS(fps) {
+    targetFPS = fps;
+    frameInterval = 1000 / fps;
+    console.log('FPS set to:', fps);
+  }
+
   if (fps24Btn && !fps24Btn.dataset.attached) {
     fps24Btn.addEventListener('click', () => {
       setFPS(24);
       fps24Btn.classList.add('active');
       fps30Btn.classList.remove('active');
       fps60Btn.classList.remove('active');
-      console.log('FPS set to 24');
     });
     fps24Btn.dataset.attached = 'true';
   }
-  
+
   if (fps30Btn && !fps30Btn.dataset.attached) {
     fps30Btn.addEventListener('click', () => {
       setFPS(30);
       fps24Btn.classList.remove('active');
       fps30Btn.classList.add('active');
       fps60Btn.classList.remove('active');
-      console.log('FPS set to 30');
     });
     fps30Btn.dataset.attached = 'true';
   }
-  
+
   if (fps60Btn && !fps60Btn.dataset.attached) {
     fps60Btn.addEventListener('click', () => {
       setFPS(60);
       fps24Btn.classList.remove('active');
       fps30Btn.classList.remove('active');
       fps60Btn.classList.add('active');
-      console.log('FPS set to 60');
     });
     fps60Btn.dataset.attached = 'true';
   }
-  
-  // Auto-cycle toggle (removed shuffle mode)
-  let autoCycleInterval = null;
-  const autoCycleToggle = document.getElementById('autoCycleToggle');
-  if (autoCycleToggle && !autoCycleToggle.dataset.attached) {
-    autoCycleToggle.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        console.log('Auto-cycle enabled (40s interval)');
-        autoCycleInterval = setInterval(() => {
-          if (!visualizerActive) return;
-          
-          // Always go to next preset (no shuffle mode)
-          const newIndex = (currentPresetIndex + 1) % presets.length;
-          loadPreset(newIndex);
-          console.log('Auto-cycle: Next preset');
-        }, 40000); // 40 seconds
+
+  // Shuffle toggle
+  const shuffleToggle = document.getElementById('shuffleToggle');
+  if (shuffleToggle && !shuffleToggle.dataset.attached) {
+    shuffleToggle.addEventListener('change', (e) => {
+      shuffleEnabled = e.target.checked;
+      if (shuffleEnabled) {
+        startShuffleTimer();
       } else {
-        console.log('Auto-cycle disabled');
-        if (autoCycleInterval) {
-          clearInterval(autoCycleInterval);
-          autoCycleInterval = null;
-        }
+        stopShuffleTimer();
       }
     });
-    autoCycleToggle.dataset.attached = 'true';
+    shuffleToggle.dataset.attached = 'true';
   }
-  
-  console.log('Settings listeners attached');
 
-  // Audio sensitivity sliders
-  const bassSlider = document.getElementById('bassSlider');
-  const midSlider = document.getElementById('midSlider');
-  const trebleSlider = document.getElementById('trebleSlider');
-  
-  if (bassSlider && !bassSlider.dataset.attached) {
-    const bassValue = bassSlider.nextElementSibling;
-    bassSlider.addEventListener('input', (e) => {
-      const value = e.target.value;
-      bassValue.textContent = value + '%';
-      console.log('Bass sensitivity:', value);
-      // Note: This is a UI placeholder - actual audio manipulation would require
-      // modifying butterchurn's internal audio processing
+  // Shuffle timer slider
+  const shuffleTimerSlider = document.getElementById('shuffleTimerSlider');
+  const shuffleTimerValue = document.getElementById('shuffleTimerValue');
+
+  if (shuffleTimerSlider && !shuffleTimerSlider.dataset.attached) {
+    shuffleTimerSlider.addEventListener('input', (e) => {
+      shuffleMinutes = parseInt(e.target.value);
+      if (shuffleTimerValue) {
+        shuffleTimerValue.textContent = `${shuffleMinutes} min`;
+      }
+      // Restart timer with new interval if shuffle is enabled
+      if (shuffleEnabled) {
+        startShuffleTimer();
+      }
     });
-    bassSlider.dataset.attached = 'true';
+    shuffleTimerSlider.dataset.attached = 'true';
   }
-  
-  if (midSlider && !midSlider.dataset.attached) {
-    const midValue = midSlider.nextElementSibling;
-    midSlider.addEventListener('input', (e) => {
-      const value = e.target.value;
-      midValue.textContent = value + '%';
-      console.log('Mid sensitivity:', value);
+
+  // Tab switching
+  const tabOptions = document.getElementById('tabOptions');
+  const tabPresets = document.getElementById('tabPresets');
+  const optionsTabContent = document.getElementById('optionsTabContent');
+  const presetsTabContent = document.getElementById('presetsTabContent');
+
+  if (tabOptions && !tabOptions.dataset.attached) {
+    tabOptions.addEventListener('click', () => {
+      tabOptions.classList.add('active');
+      tabPresets.classList.remove('active');
+      optionsTabContent.classList.add('active');
+      presetsTabContent.classList.remove('active');
+
+      // Remove presets-active class
+      if (settingsPopover) {
+        settingsPopover.classList.remove('presets-active');
+      }
+      const overlay = document.getElementById('visualizerOverlay');
+      if (overlay) {
+        overlay.classList.remove('presets-active');
+      }
     });
-    midSlider.dataset.attached = 'true';
+    tabOptions.dataset.attached = 'true';
   }
-  
-  if (trebleSlider && !trebleSlider.dataset.attached) {
-    const trebleValue = trebleSlider.nextElementSibling;
-    trebleSlider.addEventListener('input', (e) => {
-      const value = e.target.value;
-      trebleValue.textContent = value + '%';
-      console.log('Treble sensitivity:', value);
+
+  if (tabPresets && !tabPresets.dataset.attached) {
+    tabPresets.addEventListener('click', () => {
+      tabPresets.classList.add('active');
+      tabOptions.classList.remove('active');
+      presetsTabContent.classList.add('active');
+      optionsTabContent.classList.remove('active');
+
+      // Add presets-active class
+      if (settingsPopover) {
+        settingsPopover.classList.add('presets-active');
+      }
+      const overlay = document.getElementById('visualizerOverlay');
+      if (overlay) {
+        overlay.classList.add('presets-active');
+      }
+
+      // Initialize and render preset list
+      if (presets.length === 0) {
+        initializePresets();
+      }
+      renderPresetList();
     });
-    trebleSlider.dataset.attached = 'true';
+    tabPresets.dataset.attached = 'true';
   }
-  
-  console.log('Settings listeners attached (with audio sliders)');
+
+  // Preset search
+  const presetSearch = document.getElementById('presetSearch');
+  if (presetSearch && !presetSearch.dataset.attached) {
+    presetSearch.addEventListener('input', (e) => {
+      renderPresetList(e.target.value);
+    });
+    presetSearch.dataset.attached = 'true';
+  }
 }
+
+// ===========================
+// AUTO-UPDATER HANDLERS
+// ===========================
+
+// Settings Modal
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsModal = document.getElementById('settingsModal');
+const closeSettingsModal = document.getElementById('closeSettingsModal');
+const checkUpdatesBtn = document.getElementById('checkUpdatesBtn');
+const updateStatus = document.getElementById('updateStatus');
+
+// Update Modal
+const updateModal = document.getElementById('updateModal');
+const updateTitle = document.getElementById('updateTitle');
+const updateMessage = document.getElementById('updateMessage');
+const updateProgress = document.getElementById('updateProgress');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
+const updateLaterBtn = document.getElementById('updateLaterBtn');
+const updateNowBtn = document.getElementById('updateNowBtn');
+const restartBtn = document.getElementById('restartBtn');
+
+let updateInfo = null;
+
+// Open settings modal
+settingsBtn.addEventListener('click', () => {
+  settingsModal.style.display = 'flex';
+});
+
+// Close settings modal
+closeSettingsModal.addEventListener('click', () => {
+  settingsModal.style.display = 'none';
+  updateStatus.textContent = '';
+});
+
+// Close settings when clicking outside
+settingsModal.addEventListener('click', (e) => {
+  if (e.target === settingsModal) {
+    settingsModal.style.display = 'none';
+    updateStatus.textContent = '';
+  }
+});
+
+// Check for updates button
+checkUpdatesBtn.addEventListener('click', () => {
+  updateStatus.textContent = 'Checking for updates...';
+  checkUpdatesBtn.disabled = true;
+  ipcRenderer.send('check-for-updates');
+  
+  setTimeout(() => {
+    checkUpdatesBtn.disabled = false;
+  }, 3000);
+});
+
+// Update available
+ipcRenderer.on('update-available', (event, info) => {
+  updateInfo = info;
+  updateTitle.textContent = 'Update Available';
+  updateMessage.textContent = `Version ${info.version} is available. Would you like to download it?`;
+  updateModal.style.display = 'flex';
+  
+  if (settingsModal.style.display === 'flex') {
+    updateStatus.textContent = `Update available: v${info.version}`;
+    settingsModal.style.display = 'none';
+  }
+});
+
+// Update not available
+ipcRenderer.on('update-not-available', () => {
+  if (settingsModal.style.display === 'flex') {
+    updateStatus.textContent = 'You are running the latest version.';
+  }
+});
+
+// Update error
+ipcRenderer.on('update-error', (event, error) => {
+  if (settingsModal.style.display === 'flex') {
+    updateStatus.textContent = `Error checking for updates: ${error}`;
+  }
+  console.error('Update error:', error);
+});
+
+// Download progress
+ipcRenderer.on('download-progress', (event, progress) => {
+  updateProgress.style.display = 'block';
+  updateNowBtn.style.display = 'none';
+  updateLaterBtn.style.display = 'none';
+  
+  const percent = Math.round(progress.percent);
+  progressFill.style.width = `${percent}%`;
+  progressText.textContent = `Downloading... ${percent}%`;
+});
+
+// Update downloaded
+ipcRenderer.on('update-downloaded', (event, info) => {
+  updateTitle.textContent = 'Update Ready';
+  updateMessage.textContent = `Version ${info.version} has been downloaded. Restart to install the update.`;
+  updateProgress.style.display = 'none';
+  updateLaterBtn.textContent = 'Later';
+  updateLaterBtn.style.display = 'inline-block';
+  restartBtn.style.display = 'inline-block';
+});
+
+// Update modal button handlers
+updateLaterBtn.addEventListener('click', () => {
+  updateModal.style.display = 'none';
+  updateProgress.style.display = 'none';
+  progressFill.style.width = '0%';
+  updateNowBtn.style.display = 'inline-block';
+  updateLaterBtn.textContent = 'Later';
+});
+
+updateNowBtn.addEventListener('click', () => {
+  ipcRenderer.send('download-update');
+  updateNowBtn.disabled = true;
+  updateNowBtn.textContent = 'Downloading...';
+});
+
+restartBtn.addEventListener('click', () => {
+  ipcRenderer.send('install-update');
+});
+
+// Close update modal when clicking outside
+updateModal.addEventListener('click', (e) => {
+  if (e.target === updateModal && updateProgress.style.display === 'none') {
+    updateModal.style.display = 'none';
+    updateNowBtn.style.display = 'inline-block';
+    updateNowBtn.disabled = false;
+    updateNowBtn.textContent = 'Download';
+  }
+});
+
