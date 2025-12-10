@@ -104,25 +104,28 @@ The fixed bottom control bar (70px height) contains:
 
 ## Session Notes Management (IMPORTANT)
 - **When user says "wrap up for this day/session"**: 
-  1. Create a dated folder in `notes/` with format: `YYYY-MM-DD-brief-description/`
+  1. Create a dated folder with format: `YYYY-MM-DD-brief-description/`
      - Example: `2025-11-06-nts-radio-integration/`
-  2. Move ALL session-related notes into this folder
-  3. Keep notes organized chronologically by session date
-  4. This prevents `notes/` from becoming cluttered over time
+  2. Move ALL session-related notes (markdown files, images, logs, etc.) into this folder
+  3. Move the dated folder into `notes/Archive/`
+  4. Leave `notes/` root directory completely empty
+  5. This keeps the notes folder clean and organized
 - **Folder naming convention**:
   - Format: `YYYY-MM-DD-descriptive-name/`
   - Use kebab-case for description
   - Be concise but clear about what was accomplished
   - Examples:
     - `2025-11-06-nts-radio-integration/`
-    - `2025-11-10-bug-fixes-and-testing/`
+    - `2025-11-10-butterchurn-visualizer/`
     - `2025-11-15-shazam-feature-implementation/`
-- **What to archive**: ALL notes created during that session
+- **What to archive**: EVERYTHING from the session
   - Implementation plans
   - Status reports
   - Error logs
   - Assessment documents
   - Research findings
-  - Any other .md files created during the session
-- **What NOT to archive**: Files needed for ongoing reference
-  - None currently - archive everything from each session
+  - Screenshots and images
+  - Any other files (.md, .txt, .jpg, etc.) created during the session
+  - **NO EXCEPTIONS** - archive ALL session files
+- **Final structure**: `notes/Archive/YYYY-MM-DD-description/` containing all session files
+- **notes/ root should always be empty** after wrap-up
