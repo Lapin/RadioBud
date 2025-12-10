@@ -8,7 +8,8 @@ Electron-based desktop radio app for streaming multiple radio providers (SomaFM,
 ## Build/Run Commands
 - **Run app**: `npm start` or `npm run dev`
 - **Install deps**: `npm install`
-- **No build step**: Runs directly with Electron
+- **Build for distribution**: `npm run build:mac` (local testing)
+- **Release to GitHub**: `npm run release` (requires GH_TOKEN env var)
 - **No tests yet**: Add test framework if needed
 - **Git**: Repository initialized with CHANGELOG.md tracking all changes
 
@@ -41,7 +42,7 @@ Electron-based desktop radio app for streaming multiple radio providers (SomaFM,
 - **Stop**: 500ms fade-out to silence (10 steps × 50ms)
 - **Station switch**: 1000ms cross-fade between stations (20 steps × 50ms)
 
-## Completed Features
+## Completed Features (v0.4.1)
 - ✓ **Volume slider**: Master volume control (0-100%)
 - ✓ **Song history**: Last 100 played songs with timestamps
 - ✓ **Favorites**: Star songs and view favorites list
@@ -51,6 +52,10 @@ Electron-based desktop radio app for streaming multiple radio providers (SomaFM,
 - ✓ **Native window**: macOS traffic light controls (red/yellow/green)
 - ✓ **Tabbed UI**: Radio, History, Favorites tabs
 - ✓ **Dynamic window**: Auto-adjusts height (100-800px)
+- ✓ **Butterchurn Visualizer**: Full-screen music visualizer with 200+ presets
+- ✓ **Auto-Update System**: Automatic update checking and one-click updates
+- ✓ **Settings Panel**: App version display and manual update checker
+- ✓ **Dark/Light Theme**: Toggle between themes with smooth transitions
 
 ## Bug Fixes (Recent - v0.2.0)
 - ✓ Fixed special characters breaking favorite removal (ID normalization)
@@ -101,6 +106,35 @@ The fixed bottom control bar (70px height) contains:
 - **Always maintain tidy structure**: Before creating any file, ask "Is this user-facing or internal?"
   - User-facing → Root or appropriate folder
   - Internal/planning → `notes/` folder
+
+## Git Branch Management (CRITICAL)
+- **Always check current branch** before starting work:
+  ```bash
+  git branch --show-current
+  ```
+- **Feature branches** should contain ONE feature only:
+  - ✅ Good: `feature/auto-update-system` (one feature)
+  - ✅ Good: `feature/visualizer` (one feature)
+  - ❌ Bad: `feature/visualizer` + auto-update (two features mixed)
+- **Before adding new features**:
+  1. Check which branch you're on
+  2. If on a feature branch, ask: "Does this belong in this feature?"
+  3. If NO, merge current feature to master first
+  4. Then create a new branch for the new feature
+- **Merging to master**:
+  1. Commit all changes to feature branch
+  2. Switch to master: `git checkout master`
+  3. Merge: `git merge feature/branch-name --no-ff`
+  4. Tag if needed: `git tag -a v0.x.x -m "Release notes"`
+  5. Push: `git push origin master && git push origin --tags`
+- **After merging**: Create a new feature branch for next work
+- **Release workflow**:
+  1. Ensure you're on master with all changes merged
+  2. Update version in `package.json`
+  3. Commit version bump
+  4. Run `npm run release` (with GH_TOKEN set)
+  5. Tag is created automatically
+- **Never mix features** in one branch to avoid accidental double releases
 
 ## Session Notes Management (IMPORTANT)
 - **When user says "wrap up for this day/session"**: 
